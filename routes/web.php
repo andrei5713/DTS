@@ -53,7 +53,7 @@ Route::post('/logout', function (Request $request) {
 //     Route::get('/dashboard', fn() => Inertia::render('Sections/Dashboard'))->name('dashboard');
 //     Route::get('/incoming', fn() => Inertia::render('Sections/Incoming'))->name('incoming');
 //     Route::get('/outgoing', fn() => Inertia::render('Sections/Outgoing'))->name('outgoing');
-//     Route::get('/travel', fn() => Inertia::render('Sections/Travel'))->name('travel');
-//     Route::get('/bur', fn() => Inertia::render('Sections/BUR'))->name('bur');
+     Route::get('/travel', fn() => Inertia::render('Sections/Travel'))->name('travel');
+     Route::get('/bur', fn() => Inertia::render('Sections/BUR'))->name('bur');
 //     Route::get('/settings', fn() => Inertia::render('Sections/Settings'))->name('settings');
 // });

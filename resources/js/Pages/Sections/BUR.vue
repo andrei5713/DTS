@@ -164,7 +164,7 @@ function resetForm() {
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search..."
-                class="w-full border border-gray-300 rounded px-4 py-2"
+                class="w-64 border border-gray-300 rounded px-4 py-2"
               />
             </div>
 
