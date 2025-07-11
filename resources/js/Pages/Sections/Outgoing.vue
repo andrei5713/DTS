@@ -2,9 +2,9 @@
 import { ref } from 'vue';
 import Header from '@/Components/Header.vue';
 import Sidebar from '@/Components/Sidebar.vue';
-import IncomingTable from '@/Components/IncomingTable.vue';
+import OutgoingTable from '@/Components/OutgoingTable.vue';
 
-const activeSection = ref('incoming');
+const activeSection = ref('outgoing');
 function handleSectionChange(newSection) {
   activeSection.value = newSection;
 }
@@ -18,13 +18,14 @@ function handleSectionChange(newSection) {
 
             <main class="flex-1 ml-6 overflow-auto">
         <div class="bg-white p-4 sm:p-6 rounded shadow w-full max-w-full">
-          <h1 class="text-xl sm:text-2xl font-bold">Incoming</h1>
-          <p class="mb-4 text-sm sm:text-base text-gray-600">Oversee document intake and ensure complete record integrity.</p>
+          <h1 class="text-xl sm:text-2xl font-bold">Outgoing</h1>
+          <p class="mb-4 text-sm sm:text-base text-gray-600">Manage released documents and ensure proper documentation.</p>
 
-          <!-- Search and Upload -->
-           <IncomingTable />
+          <!-- Outgoing Table -->
+          <OutgoingTable />
         </div>
       </main>
+      
     </div>
   </div>
 </template>
