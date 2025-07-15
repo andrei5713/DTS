@@ -39,8 +39,8 @@ const submit = () => {
 
                         <!-- Welcome Text -->
                         <div class="text-center mb-8">
-                            <h1 class="text-2xl font-bold text-gray-900 mb-2">Welcome Back!</h1>
-                            <p class="text-gray-600 text-sm">Let's get you signed in securely.</p>
+                            <h1 class="text-2xl font-bold text-gray-900 mb-2">Welcome back</h1>
+                            <p class="text-gray-600 text-sm">Please enter your details to login.</p>
                         </div>
 
                         <!-- Login Form -->
@@ -60,16 +60,24 @@ const submit = () => {
                                     <label for="password" class="input-label">
                                         Password
                                     </label>
-                                    <a href="#" class="hyper-link">
-                                        Forgot Your Password?
-                                    </a>
                                 </div>
                                 <input id="password" v-model="form.password" type="password"
                                     placeholder="Enter Your Password" class="input-field" required />
                             </div>
 
+
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <input id="checkbox" type="checkbox" value="" class="w-4 h-4">
+                                    <label for="checkbox" class="ms-2 text-sm font-medium">Remember me</label>
+                                </div>
+                                <a href="#" class="hyper-link">
+                                    Forgot Your Password?
+                                </a>
+                            </div>
+
                             <!-- Login Button -->
-                            <button type="submit" class="btn-primary">
+                            <button type="submit" class="btn-primary w-full">
                                 Log In
                             </button>
                         </form>

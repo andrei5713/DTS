@@ -1,17 +1,13 @@
 <script setup>
 import { ref } from 'vue'
-import Header from '../Components/Header.vue';
-import Sidebar from '../Components/Sidebar.vue';
-import StatsCardGrid from '../Components/StatsCardGrid.vue';
-import DonutChart from '../Components/DonutChart.vue';
-import BarChart from '../Components/BarChart.vue';
+import Header from '@/Components/Header.vue';
+import Sidebar from '@/Components/Sidebar.vue';
 
-const activeSection = ref('dashboard');
+const activeSection = ref('outgoing');
 
 function handleSectionChange(newSection) {
     activeSection.value = newSection;
 }
-
 
 </script>
 
@@ -27,15 +23,11 @@ function handleSectionChange(newSection) {
 
             <!-- Main Content (right) -->
             <main class="flex-1 ml-6 overflow-auto">
-                <StatsCardGrid />
 
                 <!-- Placeholder content -->
                 <div class="bg-white p-6 rounded shadow">
-                    <!-- <h1 class="text-2xl font-bold">Dashboard Section</h1>
-                    <p>This is the dashboard content.</p> -->
-
-                    <DonutChart />
-                    <BarChart class="mt-6" />
+                    <h1 class="text-2xl font-bold">Outgoing Section</h1>
+                    <p>...</p>
                 </div>
             </main>
         </div>
