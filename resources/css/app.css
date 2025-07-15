@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 .btn-primary {
-    @apply w-full bg-button hover:bg-button-hover text-light text-xs md:text-sm text-center rounded flex justify-center py-1 px-2 md:py-2 md:px-4 flex items-center md:gap-2;
+    @apply bg-button hover:bg-button-hover text-light text-xs md:text-sm text-center rounded flex justify-center py-1 px-2 md:py-2 md:px-4 flex items-center md:gap-2;
 }
 
 .input-label {

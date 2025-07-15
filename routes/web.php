@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Validator;
+// use Illuminate\Support\Facades\Validator;
 
 // 👇 Show login page
 Route::get('/login', function () {
@@ -33,27 +33,23 @@ Route::post('/login', function (Request $request) {
     ]);
 });
 
-// 👇 Dashboard (protected)
-Route::middleware(['auth'])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+// ✅ Protected Routes (middleware: auth)
+Route::middleware('auth')->group(function () {
+    // Dashboard
+    Route::get('/dashboard', fn() => Inertia::render('Dashboard'))->name('dashboard');
+
+    // Other Vue sections
+    Route::get('/incoming', fn() => Inertia::render('Sections/Incoming'))->name('incoming');
+    Route::get('/outgoing', fn() => Inertia::render('Sections/Outgoing'))->name('outgoing');
+    Route::get('/travel', fn() => Inertia::render('Sections/Travel'))->name('travel');
+    Route::get('/bur', fn() => Inertia::render('Sections/BUR'))->name('bur');
+    Route::get('/settings', fn() => Inertia::render('Sections/Settings'))->name('settings');
+
+    // Logout
+    Route::post('/logout', function (Request $request) {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect('/login');
+    })->name('logout');
 });
-
-// 👇 Logout
-Route::post('/logout', function (Request $request) {
-    Auth::logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-
-    return redirect('/login');
-})->name('logout');
-
-// Route::middleware('auth')->group(function () {
-//     Route::get('/dashboard', fn() => Inertia::render('Sections/Dashboard'))->name('dashboard');
-//     Route::get('/incoming', fn() => Inertia::render('Sections/Incoming'))->name('incoming');
-//     Route::get('/outgoing', fn() => Inertia::render('Sections/Outgoing'))->name('outgoing');
-//     Route::get('/travel', fn() => Inertia::render('Sections/Travel'))->name('travel');
-//     Route::get('/bur', fn() => Inertia::render('Sections/BUR'))->name('bur');
-//     Route::get('/settings', fn() => Inertia::render('Sections/Settings'))->name('settings');
-// });

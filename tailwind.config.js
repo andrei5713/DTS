@@ -18,7 +18,7 @@ module.exports = {
                 neutral: "#848484",
                 incoming: "#15b972",
                 outgoing: "#fa832f",
-                pending: "#383aff",
+                pending: "#047cf9",
             },
         },
     },

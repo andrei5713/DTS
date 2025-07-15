@@ -5,7 +5,7 @@
                 <div class="w-3 h-12 bg-zinc-800 rounded mr-3"></div>
                 <div>
                     <p class="text-sm text-gray-600">Total Documents</p>
-                    <p class="text-2xl font-bold text-gray-900">42</p>
+                    <p class="text-2xl font-bold text-gray-900">706</p>
                 </div>
             </div>
         </div>
@@ -14,7 +14,7 @@
                 <div class="w-3 h-12 bg-incoming rounded mr-3"></div>
                 <div>
                     <p class="text-sm text-gray-600">Incoming</p>
-                    <p class="text-2xl font-bold text-gray-900">7</p>
+                    <p class="text-2xl font-bold text-gray-900">127</p>
                 </div>
             </div>
         </div>
@@ -23,7 +23,7 @@
                 <div class="w-3 h-12 bg-outgoing rounded mr-3"></div>
                 <div>
                     <p class="text-sm text-gray-600">Outgoing</p>
-                    <p class="text-2xl font-bold text-gray-900">1</p>
+                    <p class="text-2xl font-bold text-gray-900">247</p>
                 </div>
             </div>
         </div>
@@ -32,7 +32,7 @@
                 <div class="w-3 h-12 bg-pending rounded mr-3"></div>
                 <div>
                     <p class="text-sm text-gray-600">Pending</p>
-                    <p class="text-2xl font-bold text-gray-900">2</p>
+                    <p class="text-2xl font-bold text-gray-900">374</p>
                 </div>
             </div>
         </div>
