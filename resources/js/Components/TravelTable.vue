@@ -161,7 +161,7 @@ function deleteDocument(index) {
     <option value="">Select Type</option>
     <option value="Travel">Travel</option>
   </select>
-  <input type="file" @change="handleFileChange" class="border rounded px-2 py-1 w-full" required />
+  <input type="file" @change="handleFileChange" class="border rounded px-2 py-1 w-full" accept=".pdf" required />
   <div class="flex justify-between items-center mt-4">
     <button @click="closeUploadModal" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
     <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Upload</button>
