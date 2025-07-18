@@ -13,7 +13,7 @@ defineProps({
 });
 
 const form = useForm({
-    username: '',
+    email: '',
     password: '',
     remember: false,
 });
@@ -39,19 +39,19 @@ const submit = () => {
 
                         <!-- Welcome Text -->
                         <div class="text-center mb-8">
-                            <h1 class="text-2xl font-bold text-gray-900 mb-2">Welcome back</h1>
+                            <h1 class="text-2xl font-bold text-gray-900 mb-2">Document Tracking System</h1>
                             <p class="text-gray-600 text-sm">Please enter your details to login.</p>
                         </div>
 
                         <!-- Login Form -->
                         <form @submit.prevent="submit" class="space-y-6">
-                            <!-- Username Field -->
+                            <!-- Email Field -->
                             <div>
-                                <label for="username" class="input-label mb-2">
-                                    Username
+                                <label for="email" class="input-label mb-2">
+                                    Email
                                 </label>
-                                <input id="username" v-model="form.username" type="text"
-                                    placeholder="Enter Your Username" class="input-field" required />
+                                <input id="email" v-model="form.email" type="text" placeholder="Enter Your Email"
+                                    class="input-field" required />
                             </div>
 
                             <!-- Password Field -->
