@@ -16,10 +16,9 @@ return new class extends Migration
             $table->string('name');
             $table->string('username')->unique();
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['admin', 'staff', 'encoder'])->default('staff');
-            $table->rememberToken();
+            $table->string('role')->default('user'); // can be 'admin', 'department', etc.
+            $table->foreignId('unit_id')->nullable()->constrained('units')->nullOnDelete();
             $table->timestamps();
         });
     }
