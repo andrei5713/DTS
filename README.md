@@ -91,19 +91,3 @@ Install the following:
 7. Lucide Icons: npm install lucide-vue-next
 
 8. Others: npm install vue@3.5.17 @vitejs/plugin-vue@5.2.4 vue3-apexcharts@1.8.0
-
-9. npm list --depth=0
-    @inertiajs/vue3@2.0.17,
-   @tailwindcss/vite@4.1.11,
-   @vitejs/plugin-vue@5.2.4,
-   apexcharts@5.2.0,
-   autoprefixer@10.4.21,
-   axios@1.10.0,
-   concurrently@9.2.0,
-   laravel-vite-plugin@1.3.0,
-   lucide-vue-next@0.525.0,
-   postcss@8.5.6,
-   tailwindcss@3.4.17,
-   vite@6.3.5,
-   vue@3.5.17,
-   vue3-apexcharts@1.8.0,
