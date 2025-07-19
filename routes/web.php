@@ -4,7 +4,9 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-// use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\Auth\LoginController;
+
+Route::post('/login', [LoginController::class, 'login']);
 
 // 👇 Show login page
 Route::get('/login', function () {
@@ -19,7 +21,7 @@ Route::get('/', function () {
 // 👇 Handle login post
 Route::post('/login', function (Request $request) {
     $credentials = $request->validate([
-        'username' => ['required'],
+        'email' => ['required'],
         'password' => ['required'],
     ]);
 
@@ -29,7 +31,7 @@ Route::post('/login', function (Request $request) {
     }
 
     return back()->withErrors([
-        'username' => 'Invalid credentials.',
+        'email' => 'Invalid credentials.',
     ]);
 });
 
@@ -52,4 +54,7 @@ Route::middleware('auth')->group(function () {
         $request->session()->regenerateToken();
         return redirect('/login');
     })->name('logout');
+
+    Route::get('/ictsd-outgoing', fn() => Inertia::render('Outgoing/ICTSD'))->name('ictsd-outgoing');
+    Route::get('/cpd-outgoing', fn() => Inertia::render('Outgoing/CPD'))->name('cpd-outgoing');
 });

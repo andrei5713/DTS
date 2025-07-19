@@ -11,12 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('documents', function (Blueprint $table) {
+        Schema::create('units', function (Blueprint $table) {
             $table->id();
-            $table->string('tracking_number')->unique();
-            $table->string('title');
-            $table->text('description')->nullable();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('code')->unique();
+            $table->string('name');
             $table->timestamps();
         });
     }
@@ -26,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('documents');
+        Schema::dropIfExists('units');
     }
 };

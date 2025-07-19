@@ -1,5 +1,6 @@
+<!-- SideBar.vue -->
 <script setup>
-import { LayoutDashboard, FileInput, FileOutput, Navigation, HandCoins, Settings, LogOut } from 'lucide-vue-next';
+import { LayoutDashboard, FileInput, FileOutput, Settings } from 'lucide-vue-next';
 import SidebarItem from './SidebarItem.vue';
 import { router } from '@inertiajs/vue3';
 
@@ -13,11 +14,11 @@ const props = defineProps({
 const emit = defineEmits(['section-change'])
 
 const menuItems = [
-    {
-        id: 'dashboard',
-        label: 'Dashboard',
-        icon: LayoutDashboard
-    },
+    // {
+    //     id: 'dashboard',
+    //     label: 'Dashboard',
+    //     icon: LayoutDashboard
+    // },
     {
         id: 'incoming',
         label: 'Incoming',
@@ -26,17 +27,11 @@ const menuItems = [
     {
         id: 'outgoing',
         label: 'Outgoing',
-        icon: FileOutput
-    },
-    {
-        id: 'travel',
-        label: 'Travel',
-        icon: Navigation
-    },
-    {
-        id: 'bur',
-        label: 'BUR',
-        icon: HandCoins
+        icon: FileOutput,
+        children: [
+            { id: 'ictsd-outgoing', label: 'ICTSD Outgoing' },
+            { id: 'cpd-outgoing', label: 'CPD Outgoing' }
+        ]
     },
     {
         id: 'settings',
@@ -45,14 +40,13 @@ const menuItems = [
     },
 ]
 
-const handleItemClick = (sectionId) => {
-    if (sectionId === 'signout') {
+const handleItemClick = (id) => {
+    if (id === 'signout') {
         router.post('/logout')
         return
     }
 
-    // Navigate to section via Inertia route
-    router.visit(`/${sectionId}`)
+    router.visit(`/${id}`)
 }
 </script>
 
@@ -60,7 +54,7 @@ const handleItemClick = (sectionId) => {
     <aside class="w-64 bg-white shadow-sm min-h-screen rounded-lg p-4">
         <nav class="p-4 space-y-2 ">
             <SidebarItem v-for="item in menuItems" :key="item.id" :item="item" :is-active="activeSection === item.id"
-                @click="() => handleItemClick(item.id)" />
+                @click="handleItemClick" />
         </nav>
     </aside>
 </template>

@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Controller;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class LoginController extends Controller
 {
@@ -17,8 +18,8 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'username' => 'required|string',
-            'password' => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required',
         ]);
 
         if (Auth::attempt($credentials, $request->remember)) {
@@ -28,7 +29,7 @@ class LoginController extends Controller
         }
 
         return back()->withErrors([
-            'username' => 'Invalid credentials.',
+            'email' => 'Invalid credentials.',
         ]);
     }
 

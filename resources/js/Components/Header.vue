@@ -15,7 +15,7 @@
 
                 <div class="relative">
                     <button @click="showLogin" class="flex w-fit items-center gap-2 profile-btn">
-                        <div class="font-semibold">CPMSD</div>
+                        <span class="font-semibold">{{ username }}</span>
                         <ChevronDown class="w-4 h-4" />
                     </button>
                     <div v-if="isShowLogin"
@@ -33,7 +33,7 @@ import {
     Bell, ChevronDown
 } from 'lucide-vue-next'
 import { ref } from 'vue'
-import { Link } from '@inertiajs/vue3'
+import { Link, usePage } from '@inertiajs/vue3'
 import { route } from '../../../vendor/tightenco/ziggy/src/js'
 
 const isShowLogin = ref(false)
@@ -41,11 +41,6 @@ const showLogin = () => {
     isShowLogin.value = !isShowLogin.value;
 }
 
-const showNotifications = ref(false)
-const toggleNotifications = () => {
-    showNotifications.value = !showNotifications.value;
-    if (showNotifications.value) {
-        isShowLogin.value = false;
-    }
-}
+const page = usePage()
+const username = page.props?.auth?.user?.username || 'Guest'
 </script>
