@@ -14,13 +14,18 @@
                 </button>
 
                 <div class="relative">
-                    <button @click="showLogin" class="flex w-fit items-center gap-2 profile-btn">
+                    <!-- toggle button -->
+                    <button @click.stop="toggleDropdown" class="flex w-fit items-center gap-2 profile-btn">
                         <span class="font-semibold">{{ username }}</span>
                         <ChevronDown class="w-4 h-4" />
                     </button>
-                    <div v-if="isShowLogin"
-                        class="absolute bg-light shadow-lg p-2 z-10 rounded-md bottom-0 translate-y-8 profile-dropdown">
-                        <Link :href="route('logout')" method="post">Log out</Link>
+                    <div v-if="isShowLogin" ref="dropdownRef"
+                        class="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-xl ring-1 ring-gray-200 z-10"
+                        @click.stop>
+                        <Link :href="route('logout')" method="post" as="button"
+                            class="block w-full text-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Log
+                        out
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -29,18 +34,32 @@
 </template>
 
 <script setup>
-import {
-    Bell, ChevronDown
-} from 'lucide-vue-next'
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import { route } from '../../../vendor/tightenco/ziggy/src/js'
+import { Bell, ChevronDown } from 'lucide-vue-next'
 
 const isShowLogin = ref(false)
-const showLogin = () => {
-    isShowLogin.value = !isShowLogin.value;
+const dropdownRef = ref(null)
+
+const toggleDropdown = () => {
+    isShowLogin.value = !isShowLogin.value
 }
 
+const handleClickOutside = (event) => {
+    if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+        isShowLogin.value = false
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', handleClickOutside)
+})
+
 const page = usePage()
-const username = page.props?.auth?.user?.username || 'Guest'
+const username = page.props.auth?.user?.username || 'Guest'
 </script>

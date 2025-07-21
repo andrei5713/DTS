@@ -3,9 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Unit;
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,23 +13,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $cpmsd = Unit::create([
-            'code' => 'CPMSD',
-            'name' => 'Corporate Planning and Management Services Department',
-        ]);
+        // User::factory(10)->create();
 
-        User::create([
-            'name' => 'CPMSD Department',
-            'username' => 'CPMSD',
-            'email' => 'cpmsd@nfa.gov.ph',
-            'password' => Hash::make('Default123@password'),
-            'unit_id' => $cpmsd->id,
-            'role' => 'department',
-        ]);
-
-        $this->call([
-            UnitsTableSeeder::class,
-            UserSeeder::class,
+        User::factory()->create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
         ]);
     }
 }
