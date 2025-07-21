@@ -2,35 +2,34 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Controller;
 use Inertia\Inertia;
-use Inertia\Response;
+use Laravel\Socialite\Facades\Socialite;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class LoginController extends Controller
 {
-    public function show()
+    public function showLogin()
     {
         return Inertia::render('Login');
     }
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
+        $request->validate([
             'email' => 'required|email',
             'password' => 'required',
         ]);
 
-        if (Auth::attempt($credentials, $request->remember)) {
+        if (Auth::attempt($request->only('email', 'password'), true)) {
             $request->session()->regenerate();
-
-            return redirect()->intended('/dashboard');
+            return redirect('/home');
         }
 
-        return back()->withErrors([
-            'email' => 'Invalid credentials.',
-        ]);
+        return back()->withErrors(['email' => 'Invalid credentials']);
     }
 
     public function logout(Request $request)
@@ -38,7 +37,29 @@ class LoginController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+        return redirect()->route('login');
+    }
 
-        return redirect('/login');
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    public function handleGoogleCallback()
+    {
+        $googleUser = Socialite::driver('google')->user();
+
+        $user = User::updateOrCreate(
+            ['email' => $googleUser->getEmail()],
+            [
+                'name' => $googleUser->getName(),
+                'google_id' => $googleUser->getId(),
+                'password' => null,
+            ]
+        );
+
+        Auth::login($user);
+
+        return redirect('/home');
     }
 }
