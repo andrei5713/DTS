@@ -62,10 +62,32 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 
 After cloning this repo, do the following steps:
 
-1. type "composer install" in your terminal/cmd inside the cloned folder
-2. type "npm install" in your terminal/cmd inside the cloned folder
-3. type "cp .env.example .env" in your terminal/cmd inside the cloned folder
-4. type "php artisan migrate" in your terminal/cmd inside the cloned folder
-5. type "php artisan key:generate" in your terminal/cmd inside the cloned folder
-6. type "php artisan serve" in your terminal/cmd inside the cloned folder
-7. execute another terminal/cmd inside the cloned folder and run "npm run dev"
+1. Type "composer install" in your terminal/cmd inside the cloned folder
+2. Type "npm install" in your terminal/cmd inside the cloned folder
+3. Type "cp .env.example .env" in your terminal/cmd inside the cloned folder
+4. Type "php artisan migrate" in your terminal/cmd inside the cloned folder
+5. Type "php artisan key:generate" in your terminal/cmd inside the cloned folder
+6. Type "php artisan serve" in your terminal/cmd inside the cloned folder
+7. Execute another terminal/cmd inside the cloned folder and run "npm run dev"
+
+Install the following:
+1. Tailwind CSS:
+   npm install tailwindcss@3.4.17 postcss@8.5.6 autoprefixer@10.4.21,
+   npx tailwindcss init -p
+   
+2. Inertia.js:
+   composer require inertiajs/inertia-laravel (server-side),
+   php artisan inertia:middleware (middleware),
+   npm install @inertiajs/vue3 (client-side)
+
+3. Ziggy: composer require tightenco/ziggy
+
+4. Vue-apexcharts: npm install apexcharts --save
+
+5. Primeuix/themes: npm i @primeuix/themes
+
+6. Axios: npm i axios
+
+7. Lucide Icons: npm install lucide-vue-next
+
+8. Others: npm install vue@3.5.17 @vitejs/plugin-vue@5.2.4 vue3-apexcharts@1.8.0
