@@ -1,32 +1,27 @@
 <template>
-  <div>
-    <div class="flex items-end mb-0 relative space-x-1">
-      <template v-for="(tab, i) in tabs" :key="tab.value">
-        <button
-          @click="setActiveTab(tab.value)"
-          :class="[
-            'relative px-10 pt-4 pb-3 text-2xl font-bold focus:outline-none',
-            'transition-colors duration-150',
-            'rounded-t-[10px] border border-b-0',
-            activeTab === tab.value
-              ? [
-                  'bg-white z-20',
-                  tab.value === 'incoming' ? 'text-red-600' : '',
-                  tab.value === 'outgoing' ? 'text-orange-500' : '',
-                ]
-              : [
-                  'bg-gray-100 z-10',
-                  tab.value === 'incoming' ? 'text-red-400 border-gray-200' : '',
-                  tab.value === 'outgoing' ? 'text-orange-300 border-gray-200' : '',
-                ],
-          ]"
-        >
-          <span class="block" style="line-height: 1.5;">{{ tab.label }}</span>
-        </button>
-      </template>
-      <div class="flex-1 h-[1px] bg-gray-300 absolute bottom-0 left-full" style="width: 100vw;"></div>
+  <div class="nav-tabs-wrapper">
+    <div class="nav-tabs-content justify-center">
+      <div
+        v-for="(tab, idx) in tabs"
+        :key="tab.value"
+        class="nav-tab"
+        :class="{ active: tab.value === activeTab }"
+        :style="{ width: tabWidth + 'px' }"
+        @click="setActiveTab(tab.value)"
+      >
+        <div class="nav-tab-background">
+          <svg class="nav-tab-before" width="7" height="7">
+            <path d="M 0 7 A 7 7 0 0 0 7 0 L 7 7 Z"></path>
+          </svg>
+          <div class="nav-tab-content"></div>
+          <svg class="nav-tab-after" width="7" height="7">
+            <path d="M 0 0 A 7 7 0 0 0 7 7 L 0 7 Z"></path>
+          </svg>
+        </div>
+        <div class="nav-tab-label">{{ tab.label }}</div>
+      </div>
     </div>
-    <div class="border-x border-b border-gray-300 bg-white rounded-b-lg -mt-px z-0 relative" style="border-top: none;">
+    <div class="bg-white rounded-b-lg -mt-[1px] relative z-0" style="border-top: none; border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
       <slot :active-tab="activeTab" />
     </div>
   </div>
@@ -48,6 +43,7 @@ const tabs = [
   { label: 'Outgoing', value: 'outgoing' },
 ]
 
+const tabWidth = ref(245)
 const activeTab = ref(props.modelValue)
 
 function setActiveTab(tab) {
@@ -61,7 +57,80 @@ watch(() => props.modelValue, (val) => {
 </script>
 
 <style scoped>
-button:first-child {
-  border-left-width: 1px !important;
+.nav-tabs-wrapper {
+  padding-top: 10px;
+  background-color: #dee1e6;
+  position: relative; 
+}
+.nav-tabs-content {
+  height: 40px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.nav-tab {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  box-sizing: border-box;
+  position: relative;
+  margin-right: 24px;
+  cursor: pointer;
+  z-index: 1;
+  transition: z-index 0.15s;
+}
+.nav-tab:last-child {
+  margin-right: 0;
+}
+.nav-tab-background {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+.nav-tab-content {
+  flex: 1;
+  height: 100%;
+  background: #f2f3f5;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border: 1px solid #bfc4c9;
+  border-bottom: none;
+  transition: background 150ms;
+}
+.nav-tab.active .nav-tab-content {
+  background: #fff;
+  border-color: #bfc4c9;
+}
+.nav-tab-before,
+.nav-tab-after {
+  display: block;
+  position: relative;
+  z-index: 1;
+  fill: #f2f3f5;
+  transition: fill 150ms;
+}
+.nav-tab.active .nav-tab-before,
+.nav-tab.active .nav-tab-after {
+  fill: #fff;
+}
+.nav-tab-label {
+  position: relative;
+  z-index: 2;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #595959;
+  margin: 0 24px;
+  pointer-events: none;
+  transition: color 150ms;
+  white-space: nowrap;
+}
+.nav-tab.active .nav-tab-label {
+  color: #222;
 }
 </style> 
