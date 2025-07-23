@@ -1,3 +1,4 @@
+<!-- Login.vue -->
 <template>
     <div class="min-h-full p-4">
         <div class="flex w-full max-w-7xl bg-white ">
@@ -5,8 +6,7 @@
             <!-- Left: 2/3 background image with overlay stats -->
             <div class="hidden lg:flex w-3/5 relative rounded-2xl overflow-hidden">
                 <!-- Background Image -->
-                <img src="../Images/placeholder.jpg" alt="Workspace"
-                    class="absolute inset-0 w-full h-full object-cover" />
+                <LoginCarousel class="absolute inset-0 w-full h-full object-cover" />
             </div>
 
             <!-- Right: 1/3 Login Form -->
@@ -78,6 +78,7 @@
 <script setup>
 import { reactive } from 'vue'
 import { router } from '@inertiajs/vue3'
+import LoginCarousel from '../Components/LoginCarousel.vue'
 
 const form = reactive({
     email: '',

@@ -1,5 +1,6 @@
+<!-- Header.vue -->
 <template>
-    <header class="bg-white shadow-sm border-b">
+    <header class="bg-white shadow-lg rounded-lg border-b">
         <div class="flex items-center justify-between px-6 py-4">
             <div class="flex items-center space-x-4">
                 <img src="@/Images/NFA.svg" class="w-12 h-12">
@@ -22,10 +23,10 @@
                     <div v-if="isShowLogin" ref="dropdownRef"
                         class="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-xl ring-1 ring-gray-200 z-10"
                         @click.stop>
-                        <Link :href="route('logout')" method="post" as="button"
+                        <button @click="logout"
                             class="block w-full text-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Log
-                        out
-                        </Link>
+                            out
+                        </button>
                     </div>
                 </div>
             </div>
@@ -35,8 +36,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { Link, usePage } from '@inertiajs/vue3'
-import { route } from '../../../vendor/tightenco/ziggy/src/js'
+import { usePage, router } from '@inertiajs/vue3'
 import { Bell, ChevronDown } from 'lucide-vue-next'
 
 const isShowLogin = ref(false)
@@ -61,5 +61,9 @@ onBeforeUnmount(() => {
 })
 
 const page = usePage()
-const username = page.props.auth?.user?.username || 'Guest'
+const username = page.props.auth?.user?.name || 'Guest'
+
+function logout() {
+    router.post('/logout')
+}
 </script>

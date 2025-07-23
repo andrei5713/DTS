@@ -1,9 +1,11 @@
+<!-- web.php -->
 <?php
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\GoogleController;
 use Inertia\Inertia;
+use Illuminate\Http\Request;
 
 // Protected Routes
 Route::middleware(['web'])->group(function () {
@@ -14,7 +16,14 @@ Route::middleware(['web'])->group(function () {
     Route::get('/', [LoginController::class, 'showLogin'])->name('login');
     Route::get('/login', [LoginController::class, 'showLogin']);
     Route::post('/login', [LoginController::class, 'login']);
-    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    Route::post('/logout', function (Request $request) {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        // Instead of a full HTTP redirect, do this:
+        return Inertia::location('/login'); // ✅ Fixes the toString error
+    });
 
 
     // Google OAuth

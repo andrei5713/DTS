@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Illuminate\Support\Facades\Auth;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -39,11 +40,11 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user() ? [
                     'id' => $request->user()->id,
-                    'username' => $request->user()->username,
+                    'name' => $request->user()->name,
                     'email' => $request->user()->email,
-                    // add any fields you need here
                 ] : null,
             ],
+            'csrf_token' => csrf_token(),
         ]);
     }
 }
