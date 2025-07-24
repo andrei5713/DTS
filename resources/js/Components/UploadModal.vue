@@ -14,22 +14,39 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'upload'])
 
+function generateTrackingNumber() {
+    const prefix = 'CPMSD';
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `${prefix}-${yyyy}-${mm}-${rand}`;
+}
+
 const formData = ref({
+    trackingCode: generateTrackingNumber(),
+    documentType: '',
     subject: '',
-    department: '',
-    code: '',
-    status: '',
-    shortDescription: '',
-    trackingCode: '',
-    file: null
+    documentDate: '',
+    entryDate: '',
+    sender: '',
+    originatingOffice: '',
+    originType: 'internal',
+    priority: '',
+    remarks: '',
+    file: null,
+    routing: 'internal',
 })
 
 const errors = ref({})
 const isUploading = ref(false)
 
-// Add refs to track open state for Department and Status selects
 const isDepartmentOpen = ref(false)
 const isStatusOpen = ref(false)
+const isPriorityOpen = ref(false)
+const isOriginTypeOpen = ref(false)
+const isRoutingOpen = ref(false)
 
 const statusOptions = [
     { label: 'Simple', days: 3, color: 'blue', value: 'simple' },
@@ -38,16 +55,17 @@ const statusOptions = [
     { label: 'Urgent', days: 1, color: 'purple', value: 'urgent' },
 ]
 
-const departments = [
-    'AO',
-    'ODA',
-    'OAAFA',
-    'OAAO',
-    'AGSD',
-    'CPMSD',
-    'FD',
-    'IAD',
-    'OCD',
+const documentTypes = [
+    'Memo',
+    'Letter',
+    'PR',
+    'DV',
+]
+
+const priorities = [
+    'Normal',
+    'Urgent',
+    'Confidential',
 ]
 
 function closeModal() {
@@ -57,13 +75,18 @@ function closeModal() {
 
 function resetForm() {
     formData.value = {
+        trackingCode: generateTrackingNumber(),
+        documentType: '',
         subject: '',
-        department: '',
-        code: '',
-        status: '',
-        shortDescription: '',
-        trackingCode: '',
-        file: null
+        documentDate: '',
+        entryDate: '',
+        sender: '',
+        originatingOffice: '',
+        originType: 'internal',
+        priority: '',
+        remarks: '',
+        file: null,
+        routing: 'internal',
     }
     errors.value = {}
 }
@@ -71,20 +94,16 @@ function resetForm() {
 function handleFileChange(event) {
     const file = event.target.files[0]
     if (file) {
-        // Check if file is PDF
         if (file.type !== 'application/pdf') {
             errors.value.file = 'Only PDF files are allowed'
             event.target.value = ''
             return
         }
-        
-        // Check file size (max 10MB)
         if (file.size > 10 * 1024 * 1024) {
             errors.value.file = 'File size must be less than 10MB'
             event.target.value = ''
             return
         }
-        
         formData.value.file = file
         errors.value.file = ''
     }
@@ -92,27 +111,33 @@ function handleFileChange(event) {
 
 function validateForm() {
     errors.value = {}
-    
+    if (!formData.value.trackingCode.trim()) {
+        errors.value.trackingCode = 'Tracking number is required'
+    }
+    if (!formData.value.documentType) {
+        errors.value.documentType = 'Document type is required'
+    }
     if (!formData.value.subject.trim()) {
         errors.value.subject = 'Subject is required'
     }
-    
-    if (!formData.value.department) {
-        errors.value.department = 'Department is required'
+    if (!formData.value.documentDate) {
+        errors.value.documentDate = 'Document date is required'
     }
-    
-    if (!formData.value.code.trim()) {
-        errors.value.code = 'Code is required'
+    if (!formData.value.entryDate) {
+        errors.value.entryDate = 'Date of entry is required'
     }
-    
-    if (!formData.value.status) {
-        errors.value.status = 'Status is required'
+    if (!formData.value.sender.trim()) {
+        errors.value.sender = 'Sender is required'
     }
-    
+    if (!formData.value.originatingOffice.trim()) {
+        errors.value.originatingOffice = 'Originating office is required'
+    }
+    if (!formData.value.priority) {
+        errors.value.priority = 'Priority is required'
+    }
     if (!formData.value.file) {
         errors.value.file = 'File is required'
     }
-    
     return Object.keys(errors.value).length === 0
 }
 
@@ -120,24 +145,17 @@ async function handleSubmit() {
     if (!validateForm()) {
         return
     }
-    
     isUploading.value = true
-    
     try {
-        // Create FormData for file upload
         const uploadData = new FormData()
-        uploadData.append('subject', formData.value.subject)
-        uploadData.append('department', formData.value.department)
-        uploadData.append('code', formData.value.code)
-        uploadData.append('status', formData.value.status)
-        uploadData.append('shortDescription', formData.value.shortDescription)
-        uploadData.append('trackingCode', formData.value.trackingCode)
-        uploadData.append('file', formData.value.file)
-        
-        // Emit the upload event with the form data
+        Object.entries(formData.value).forEach(([key, value]) => {
+            if (key === 'file') {
+                uploadData.append('file', value)
+            } else {
+                uploadData.append(key, value)
+            }
+        })
         emit('upload', uploadData)
-        
-        // Close modal and reset form
         closeModal()
     } catch (error) {
         console.error('Upload error:', error)
@@ -147,7 +165,6 @@ async function handleSubmit() {
     }
 }
 
-// Watch for show prop changes to reset form when modal opens
 watch(() => props.show, (newValue) => {
     if (newValue) {
         resetForm()
@@ -156,203 +173,127 @@ watch(() => props.show, (newValue) => {
 </script>
 
 <template>
-    <div v-if="show" class="fixed inset-0 z-50 overflow-y-auto">
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="closeModal"></div>
-        
-        <!-- Modal -->
-        <div class="flex min-h-full items-center justify-center p-4">
-            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-auto">
-                <!-- Header -->
-                <div class="flex items-center justify-between p-6 border-b">
-                    <h3 class="text-lg font-semibold text-gray-900">{{ title }}</h3>
-                    <button
-                        @click="closeModal"
-                        class="text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-                
-                <!-- Body -->
-                <div class="p-6">
-                    <form @submit.prevent="handleSubmit">
-                        <!-- Subject -->
-                        <div class="mb-4">
-                            <label for="subject" class="block text-sm font-medium text-gray-700 mb-2">
-                                Subject *
-                            </label>
-                            <input
-                                id="subject"
-                                v-model="formData.subject"
-                                type="text"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                :class="{ 'border-red-500': errors.subject }"
-                            />
-                            <p v-if="errors.subject" class="mt-1 text-sm text-red-600">{{ errors.subject }}</p>
-                        </div>
-                        
-                        <!-- Department -->
-                        <div class="mb-4 relative">
-                            <label for="department" class="block text-sm font-medium text-gray-700 mb-2">
-                                Department *
-                            </label>
-                            <div class="relative">
-                                <select
-                                    id="department"
-                                    v-model="formData.department"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-10"
-                                    :class="{ 'border-red-500': errors.department }"
-                                    @focus="isDepartmentOpen = true"
-                                    @blur="isDepartmentOpen = false"
-                                >
-                                    <option value="">Select Department</option>
-                                    <option v-for="dept in departments" :key="dept" :value="dept">
-                                        {{ dept }}
-                                    </option>
-                                </select>
-                                <!-- Custom Chevron -->
-                                <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                                    <svg :class="[ 'w-5 h-5 transition-transform duration-200', isDepartmentOpen ? 'rotate-180' : 'rotate-0' ]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </span>
-                            </div>
-                            <p v-if="errors.department" class="mt-1 text-sm text-red-600">{{ errors.department }}</p>
-                        </div>
-                        
-                        <!-- Code -->
-                        <div class="mb-4">
-                            <label for="code" class="block text-sm font-medium text-gray-700 mb-2">
-                                Code *
-                            </label>
-                            <input
-                                id="code"
-                                v-model="formData.code"
-                                type="text"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                :class="{ 'border-red-500': errors.code }"
-                            />
-                            <p v-if="errors.code" class="mt-1 text-sm text-red-600">{{ errors.code }}</p>
-                        </div>
-                        
-                        <!-- Status -->
-                        <div class="mb-4 relative">
-                            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
-                                Status *
-                            </label>
-                            <div class="relative">
-                                <select
-                                    id="status"
-                                    v-model="formData.status"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-10"
-                                    :class="{ 'border-red-500': errors.status }"
-                                    @focus="isStatusOpen = true"
-                                    @blur="isStatusOpen = false"
-                                >
-                                    <option value="">Select Status</option>
-                                    <option v-for="status in statusOptions" :key="status.value" :value="status.value">
-                                        {{ status.label }} - {{ status.days }} days
-                                    </option>
-                                </select>
-                                <!-- Custom Chevron -->
-                                <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                                    <svg :class="[ 'w-5 h-5 transition-transform duration-200', isStatusOpen ? 'rotate-180' : 'rotate-0' ]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </span>
-                            </div>
-                            <p v-if="errors.status" class="mt-1 text-sm text-red-600">{{ errors.status }}</p>
-                        </div>
-                        
-                        <!-- Short Description -->
-                        <div class="mb-4">
-                            <label for="shortDescription" class="block text-sm font-medium text-gray-700 mb-2">
-                                Short Description *
-                            </label>
-                            <input
-                                id="shortDescription"
-                                v-model="formData.shortDescription"
-                                type="text"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                :class="{ 'border-red-500': errors.shortDescription }"
-                            />
-                            <p v-if="errors.shortDescription" class="mt-1 text-sm text-red-600">{{ errors.shortDescription }}</p>
-                        </div>
-                        
-                        
-                        
-                        <!-- Tracking Code (Read-only) -->
-                        <div class="mb-4">
-                            <label for="trackingCode" class="block text-sm font-medium text-gray-700 mb-2">
-                                Tracking Code *
-                            </label>
-                            <input
-                                id="trackingCode"
-                                v-model="formData.trackingCode"
-                                type="text"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
-                            <p v-if="errors.trackingCode" class="mt-1 text-sm text-red-600">{{ errors.trackingCode }}</p>
-                        </div>
-                        
-                        <!-- File Upload -->
-                        <div class="mb-6">
-                            <label for="file" class="block text-sm font-medium text-gray-700 mb-2">
-                                File (PDF only) *
-                            </label>
-                            <input
-                                id="file"
-                                type="file"
-                                accept=".pdf"
-                                @change="handleFileChange"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                :class="{ 'border-red-500': errors.file }"
-                            />
-                            <p v-if="errors.file" class="mt-1 text-sm text-red-600">{{ errors.file }}</p>
-                            <p v-if="formData.file" class="mt-1 text-sm text-green-600">
-                                Selected: {{ formData.file.name }}
-                            </p>
-                        </div>
-                        
-                        <!-- General Error -->
-                        <div v-if="errors.general" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                            <p class="text-sm text-red-600">{{ errors.general }}</p>
-                        </div>
-                        
-                        <!-- Actions -->
-                        <div class="flex justify-end space-x-3">
-                            <button
-                                type="button"
-                                @click="closeModal"
-                                class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-400 border-2 border-black-200 rounded-md transition-colors"
-                                :disabled="isUploading"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                                :disabled="isUploading"
-                            >
-                                <svg v-if="isUploading" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span>{{ isUploading ? 'Uploading...' : 'Upload' }}</span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+  <div v-if="show" class="fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="closeModal"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-auto max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between p-6 border-b">
+          <h3 class="text-lg font-semibold text-gray-900">{{ title }}</h3>
+          <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
         </div>
+        <div class="p-6">
+          <form @submit.prevent="handleSubmit">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Tracking Number -->
+              <div>
+                <label for="trackingCode" class="block text-sm font-medium text-gray-700 mb-1">Tracking Number *</label>
+                <input id="trackingCode" v-model="formData.trackingCode" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.trackingCode }" />
+                <p v-if="errors.trackingCode" class="mt-1 text-sm text-red-600">{{ errors.trackingCode }}</p>
+              </div>
+              <!-- Document Type -->
+              <div>
+                <label for="documentType" class="block text-sm font-medium text-gray-700 mb-1">Document Type *</label>
+                <select id="documentType" v-model="formData.documentType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-10" :class="{ 'border-red-500': errors.documentType }">
+                  <option value="">Select Document Type</option>
+                  <option v-for="type in documentTypes" :key="type" :value="type">{{ type }}</option>
+                </select>
+                <p v-if="errors.documentType" class="mt-1 text-sm text-red-600">{{ errors.documentType }}</p>
+              </div>
+              <!-- Subject/Title -->
+              <div class="md:col-span-2">
+                <label for="subject" class="block text-sm font-medium text-gray-700 mb-1">Subject/Title *</label>
+                <input id="subject" v-model="formData.subject" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.subject }" />
+                <p v-if="errors.subject" class="mt-1 text-sm text-red-600">{{ errors.subject }}</p>
+              </div>
+              <!-- Document Date -->
+              <div>
+                <label for="documentDate" class="block text-sm font-medium text-gray-700 mb-1">Document Date *</label>
+                <input id="documentDate" v-model="formData.documentDate" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.documentDate }" />
+                <p v-if="errors.documentDate" class="mt-1 text-sm text-red-600">{{ errors.documentDate }}</p>
+              </div>
+              <!-- Date of Entry -->
+              <div>
+                <label for="entryDate" class="block text-sm font-medium text-gray-700 mb-1">Date of Entry *</label>
+                <input id="entryDate" v-model="formData.entryDate" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.entryDate }" />
+                <p v-if="errors.entryDate" class="mt-1 text-sm text-red-600">{{ errors.entryDate }}</p>
+              </div>
+              <!-- Sender -->
+              <div>
+                <label for="sender" class="block text-sm font-medium text-gray-700 mb-1">Sender *</label>
+                <input id="sender" v-model="formData.sender" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.sender }" />
+                <p v-if="errors.sender" class="mt-1 text-sm text-red-600">{{ errors.sender }}</p>
+              </div>
+              <!-- Originating Office -->
+              <div>
+                <label for="originatingOffice" class="block text-sm font-medium text-gray-700 mb-1">Originating Office *</label>
+                <input id="originatingOffice" v-model="formData.originatingOffice" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.originatingOffice }" />
+                <p v-if="errors.originatingOffice" class="mt-1 text-sm text-red-600">{{ errors.originatingOffice }}</p>
+              </div>
+              <!-- Origin Type -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Origin Type *</label>
+                <select v-model="formData.originType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-10">
+                  <option value="internal">Internal</option>
+                  <option value="external">External</option>
+                </select>
+              </div>
+              <!-- Priority Level -->
+              <div>
+                <label for="priority" class="block text-sm font-medium text-gray-700 mb-1">Priority Level *</label>
+                <select id="priority" v-model="formData.priority" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-10" :class="{ 'border-red-500': errors.priority }">
+                  <option value="">Select Priority</option>
+                  <option v-for="level in priorities" :key="level" :value="level">{{ level }}</option>
+                </select>
+                <p v-if="errors.priority" class="mt-1 text-sm text-red-600">{{ errors.priority }}</p>
+              </div>
+              <!-- Routing -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Routing *</label>
+                <select v-model="formData.routing" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-10">
+                  <option value="internal">Internal</option>
+                  <option value="external">External</option>
+                </select>
+              </div>
+              <!-- Remarks/Description -->
+              <div class="md:col-span-2">
+                <label for="remarks" class="block text-sm font-medium text-gray-700 mb-1">Remarks/Description</label>
+                <textarea id="remarks" v-model="formData.remarks" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" rows="2"></textarea>
+              </div>
+              <!-- File Upload -->
+              <div class="md:col-span-2">
+                <label for="file" class="block text-sm font-medium text-gray-700 mb-1">File (PDF only) *</label>
+                <input id="file" type="file" accept=".pdf" @change="handleFileChange" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" :class="{ 'border-red-500': errors.file }" />
+                <p v-if="errors.file" class="mt-1 text-sm text-red-600">{{ errors.file }}</p>
+                <p v-if="formData.file" class="mt-1 text-sm text-green-600">Selected: {{ formData.file.name }}</p>
+              </div>
+            </div>
+            <!-- General Error -->
+            <div v-if="errors.general" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <p class="text-sm text-red-600">{{ errors.general }}</p>
+            </div>
+            <!-- Actions -->
+            <div class="flex justify-end space-x-3 mt-6">
+              <button type="button" @click="closeModal" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-400 border-2 border-black-200 rounded-md transition-colors" :disabled="isUploading">Cancel</button>
+              <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2" :disabled="isUploading">
+                <svg v-if="isUploading" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{{ isUploading ? 'Uploading...' : 'Upload' }}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
+  </div>
 </template>
 
 <style scoped>
-/* Hide default select arrow for custom chevron */
 select.appearance-none {
     background-image: none;
 }

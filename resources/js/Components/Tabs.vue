@@ -60,13 +60,15 @@ watch(() => props.modelValue, (val) => {
 .nav-tabs-wrapper {
   padding-top: 10px;
   background-color: #dee1e6;
-  position: relative; 
+  position: relative;
+  z-index: 0;
 }
 .nav-tabs-content {
   height: 40px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  z-index: 0;
 }
 .nav-tab {
   height: 100%;
@@ -77,7 +79,7 @@ watch(() => props.modelValue, (val) => {
   position: relative;
   margin-right: 24px;
   cursor: pointer;
-  z-index: 1;
+  z-index: 0;
   transition: z-index 0.15s;
 }
 .nav-tab:last-child {
@@ -111,7 +113,7 @@ watch(() => props.modelValue, (val) => {
 .nav-tab-after {
   display: block;
   position: relative;
-  z-index: 1;
+  z-index: 0;
   fill: #f2f3f5;
   transition: fill 150ms;
 }
@@ -121,7 +123,7 @@ watch(() => props.modelValue, (val) => {
 }
 .nav-tab-label {
   position: relative;
-  z-index: 2;
+  z-index: 0;
   font-size: 1.25rem;
   font-weight: bold;
   color: #595959;
