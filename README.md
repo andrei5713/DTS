@@ -70,7 +70,7 @@ After cloning this repo, do the following steps:
 6. Type "php artisan serve" in your terminal/cmd inside the cloned folder
 7. Execute another terminal/cmd inside the cloned folder and run "npm run dev"
 
-Install the following:
+Install the following: ("npm list depth=0" to check if all modules below are installed)
 1. Tailwind CSS: for customize design
    npm install tailwindcss@3.4.17 postcss@8.5.6 autoprefixer@10.4.21,
    npx tailwindcss init -p
