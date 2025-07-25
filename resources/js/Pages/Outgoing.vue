@@ -13,7 +13,7 @@
         </div>
       </template>
     </Table>
-    <UploadModal :show="showUploadModal" title="Upload Outgoing Document" @close="showUploadModal = false" @upload="handleUpload" />
+    <UploadModal :show="showUploadModal" title="Upload Outgoing Document" @close="showUploadModal = false; editIndex = null; editFormData = null;" @upload="handleUpload" :formData="editFormData" />
   </div>
 </template>
 
@@ -29,6 +29,8 @@ const rows = ref(window.outgoingDocuments);
 
 const showUploadModal = ref(false);
 const searchQuery = ref('');
+const editIndex = ref(null);
+const editFormData = ref(null);
 const { confirmDelete } = useDeleteAlert();
 
 const columns = [
@@ -49,7 +51,7 @@ const columns = [
 
 function handleUpload(uploadData) {
   const file = uploadData.get('file');
-  rows.value.push({
+  const newRow = {
     trackingCode: uploadData.get('trackingCode'),
     documentType: uploadData.get('documentType'),
     subject: uploadData.get('subject'),
@@ -62,12 +64,21 @@ function handleUpload(uploadData) {
     remarks: uploadData.get('remarks'),
     routing: uploadData.get('routing'),
     file: file ? file.name : '',
-  });
+  };
+  if (editIndex.value !== null) {
+    rows.value[editIndex.value] = newRow;
+    editIndex.value = null;
+    editFormData.value = null;
+  } else {
+    rows.value.push(newRow);
+  }
+  showUploadModal.value = false;
 }
 
 function editRow(index) {
-  // Implement edit logic here
-  alert('Edit row ' + (index + 1));
+  editIndex.value = index;
+  editFormData.value = { ...rows.value[index] };
+  showUploadModal.value = true;
 }
 
 async function deleteRow(index) {

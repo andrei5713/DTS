@@ -9,6 +9,10 @@ const props = defineProps({
     title: {
         type: String,
         default: 'Upload Document'
+    },
+    formData: {
+        type: Object,
+        default: null
     }
 })
 
@@ -25,7 +29,7 @@ function generateTrackingNumber() {
 }
 
 const formData = ref({
-    trackingCode: generateTrackingNumber(),
+    trackingCode: '',
     documentType: '',
     subject: '',
     documentDate: '',
@@ -42,10 +46,9 @@ const formData = ref({
 const errors = ref({})
 const isUploading = ref(false)
 
-const isDepartmentOpen = ref(false)
-const isStatusOpen = ref(false)
-const isPriorityOpen = ref(false)
+const isDocumentTypeOpen = ref(false)
 const isOriginTypeOpen = ref(false)
+const isPriorityOpen = ref(false)
 const isRoutingOpen = ref(false)
 
 const statusOptions = [
@@ -70,7 +73,21 @@ const priorities = [
 
 function closeModal() {
     emit('close')
-    resetForm()
+    // Reset only after closing
+    formData.value = {
+        trackingCode: generateTrackingNumber(),
+        documentType: '',
+        subject: '',
+        documentDate: '',
+        entryDate: '',
+        sender: '',
+        originatingOffice: '',
+        originType: 'internal',
+        priority: '',
+        remarks: '',
+        file: null,
+        routing: 'internal',
+    }
 }
 
 function resetForm() {
@@ -167,9 +184,34 @@ async function handleSubmit() {
 
 watch(() => props.show, (newValue) => {
     if (newValue) {
-        resetForm()
+        // Only reset if not editing
+        if (!props.formData) {
+            resetForm()
+        }
     }
 })
+
+watch(() => props.formData, (newVal) => {
+  if (newVal) {
+    formData.value = { ...newVal };
+  } else {
+    // Only reset if not editing
+    formData.value = {
+      trackingCode: generateTrackingNumber(),
+      documentType: '',
+      subject: '',
+      documentDate: '',
+      entryDate: '',
+      sender: '',
+      originatingOffice: '',
+      originType: 'internal',
+      priority: '',
+      remarks: '',
+      file: null,
+      routing: 'internal',
+    };
+  }
+}, { immediate: true });
 </script>
 
 <template>
@@ -195,12 +237,19 @@ watch(() => props.show, (newValue) => {
                 <p v-if="errors.trackingCode" class="mt-1 text-sm text-red-600">{{ errors.trackingCode }}</p>
               </div>
               <!-- Document Type -->
-              <div>
+              <div class="relative">
                 <label for="documentType" class="block text-sm font-medium text-gray-700 mb-1">Document Type *</label>
-                <select id="documentType" v-model="formData.documentType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-10" :class="{ 'border-red-500': errors.documentType }">
-                  <option value="">Select Document Type</option>
-                  <option v-for="type in documentTypes" :key="type" :value="type">{{ type }}</option>
-                </select>
+                <div class="relative">
+                  <select id="documentType" v-model="formData.documentType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" :class="{ 'border-red-500': errors.documentType }" @focus="isDocumentTypeOpen = true" @blur="isDocumentTypeOpen = false">
+                    <option value="">Select Document Type</option>
+                    <option v-for="type in documentTypes" :key="type" :value="type">{{ type }}</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                    <svg class="w-5 h-5 text-gray-700 font-bold transition-transform duration-200" :class="{ 'rotate-180': isDocumentTypeOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                </div>
                 <p v-if="errors.documentType" class="mt-1 text-sm text-red-600">{{ errors.documentType }}</p>
               </div>
               <!-- Subject/Title -->
@@ -234,29 +283,50 @@ watch(() => props.show, (newValue) => {
                 <p v-if="errors.originatingOffice" class="mt-1 text-sm text-red-600">{{ errors.originatingOffice }}</p>
               </div>
               <!-- Origin Type -->
-              <div>
+              <div class="relative">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Origin Type *</label>
-                <select v-model="formData.originType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-10">
-                  <option value="internal">Internal</option>
-                  <option value="external">External</option>
-                </select>
+                <div class="relative">
+                  <select v-model="formData.originType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" @focus="isOriginTypeOpen = true" @blur="isOriginTypeOpen = false">
+                    <option value="internal">Internal</option>
+                    <option value="external">External</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                    <svg class="w-5 h-5 text-gray-700 font-bold transition-transform duration-200" :class="{ 'rotate-180': isOriginTypeOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                </div>
               </div>
               <!-- Priority Level -->
-              <div>
+              <div class="relative">
                 <label for="priority" class="block text-sm font-medium text-gray-700 mb-1">Priority Level *</label>
-                <select id="priority" v-model="formData.priority" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-10" :class="{ 'border-red-500': errors.priority }">
-                  <option value="">Select Priority</option>
-                  <option v-for="level in priorities" :key="level" :value="level">{{ level }}</option>
-                </select>
+                <div class="relative">
+                  <select id="priority" v-model="formData.priority" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" :class="{ 'border-red-500': errors.priority }" @focus="isPriorityOpen = true" @blur="isPriorityOpen = false">
+                    <option value="">Select Priority</option>
+                    <option v-for="level in priorities" :key="level" :value="level">{{ level }}</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                    <svg class="w-5 h-5 text-gray-700 font-bold transition-transform duration-200" :class="{ 'rotate-180': isPriorityOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                </div>
                 <p v-if="errors.priority" class="mt-1 text-sm text-red-600">{{ errors.priority }}</p>
               </div>
               <!-- Routing -->
-              <div>
+              <div class="relative">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Routing *</label>
-                <select v-model="formData.routing" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-10">
-                  <option value="internal">Internal</option>
-                  <option value="external">External</option>
-                </select>
+                <div class="relative">
+                  <select v-model="formData.routing" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" @focus="isRoutingOpen = true" @blur="isRoutingOpen = false">
+                    <option value="internal">Internal</option>
+                    <option value="external">External</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                    <svg class="w-5 h-5 text-gray-700 font-bold transition-transform duration-200" :class="{ 'rotate-180': isRoutingOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                </div>
               </div>
               <!-- Remarks/Description -->
               <div class="md:col-span-2">
@@ -296,5 +366,8 @@ watch(() => props.show, (newValue) => {
 <style scoped>
 select.appearance-none {
     background-image: none;
+}
+.rotate-180 {
+  transform: rotate(180deg);
 }
 </style> 
