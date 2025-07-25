@@ -5,7 +5,7 @@ import { createApp, h } from "vue";
 import { createInertiaApp } from "@inertiajs/vue3";
 import VueApexCharts from "vue3-apexcharts";
 import { ZiggyVue } from "../../vendor/tightenco/ziggy";
-import { route } from "ziggy-js";
+import { route } from 'ziggy-js';
 
 createInertiaApp({
     resolve: (name) => {
