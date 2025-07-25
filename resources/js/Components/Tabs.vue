@@ -1,26 +1,23 @@
 <template>
     <div class="bg-gray-200 relative">
-        <div class="h-8 flex justify-evenly">
-            <div v-for="(tab, idx) in tabs" :key="tab.value" :class="[
-                'h-full flex items-center select-none box-border relative cursor-pointer z-10 transition-[z-index] duration-150',
-                tab.value !== tabs[tabs.length - 1].value ? 'mr-[24px]' : '',
-                tab.value === activeTab ? 'z-[2]' : ''
-            ]" :style="{ width: tabWidth + 'px' }" @click="setActiveTab(tab.value)">
-                <div class="w-full h-full flex absolute">
-
-                    <div class="flex-1 h-full shadow-t-lg transition-colors duration-150" :class="[
-                        'rounded-t-[10px]',
-                        tab.value === activeTab ? 'bg-white' : 'bg-gray-200'
-                    ]"></div>
-
-                </div>
-                <div class="absolute left-20 font-semibold"
-                    :class="tab.value === activeTab ? 'text-dark' : 'text-dark'">
-                    {{ tab.label }}
-                </div>
+        <!-- Horizontal tabs aligned to the left -->
+        <div class="h-12 flex items-center space-x-4 shadow-sm">
+            <div
+                v-for="(tab, idx) in tabs"
+                :key="tab.value"
+                class="relative cursor-pointer transition-all duration-150"
+                :class="[
+                    'select-none px-5 py-2 rounded-t-md font-semibold',
+                    tab.value === activeTab ? 'bg-white shadow text-dark z-10' : 'bg-gray-200 text-gray-600 hover:bg-white/80'
+                ]"
+                @click="setActiveTab(tab.value)"
+            >
+                {{ tab.label }}
             </div>
         </div>
-        <div class="bg-white rounded-lg shadow-lg px-3 py-3 pt-4">
+
+        <!-- Tab Content -->
+        <div class="bg-white rounded-b-lg shadow-lg px-4 py-4">
             <slot :active-tab="activeTab" />
         </div>
     </div>
@@ -40,9 +37,9 @@ const emit = defineEmits(['update:activeTab'])
 const tabs = [
     { label: 'Incoming', value: 'incoming' },
     { label: 'Outgoing', value: 'outgoing' },
+    { label: 'Archive', value: 'archive' },
 ]
 
-const tabWidth = ref(245)
 const activeTab = ref(props.modelValue)
 
 function setActiveTab(tab) {
