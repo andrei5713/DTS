@@ -71,23 +71,25 @@ After cloning this repo, do the following steps:
 7. Execute another terminal/cmd inside the cloned folder and run "npm run dev"
 
 Install the following:
-1. Tailwind CSS:
+1. Tailwind CSS: for customize design
    npm install tailwindcss@3.4.17 postcss@8.5.6 autoprefixer@10.4.21,
    npx tailwindcss init -p
    
-2. Inertia.js:
+2. Inertia.js: for routing
    composer require inertiajs/inertia-laravel (server-side),
    php artisan inertia:middleware (middleware),
    npm install @inertiajs/vue3 (client-side)
 
-3. Ziggy: composer require tightenco/ziggy
+3. Ziggy: composer require tightenco/ziggy (for routing too)
 
-4. Vue-apexcharts: npm install apexcharts --save
+4. Vue-apexcharts: npm install apexcharts --save (for frontend charts)
 
 5. Primeuix/themes: npm i @primeuix/themes
 
-6. Axios: npm i axios
+6. Axios: npm i axios (is for making requests to external servers from the browser)
 
-7. Lucide Icons: npm install lucide-vue-next
+7. Lucide Icons: npm install lucide-vue-next (for Icons)
 
 8. Others: npm install vue@3.5.17 @vitejs/plugin-vue@5.2.4 vue3-apexcharts@1.8.0
+
+9. Sweet Alert 2: npm i sweetalert2 (for alerts and confirmations)
