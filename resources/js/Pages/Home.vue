@@ -139,8 +139,7 @@
           <div v-else-if="activeTab === 'archive'">
             <div class="flex items-center gap-4 mb-2">
               <h2 class="text-2xl font-bold">Archive Documents</h2>
-              <h2 class="text-2x1 font-bold">—</h2>
-              <select v-model="archiveType" class="rounded px-1 py-1 text-lg bg-white font-bold min-w-32">
+              <select v-model="archiveType" class="rounded px-4 py-2 text-lg bg-white min-w-32">
                 <option value="incoming">Incoming</option>
                 <option value="outgoing">Outgoing</option>
               </select>
@@ -316,6 +315,114 @@ const documents = ref([
     status: 'Pending',
     current_handler: 'Office of the Director',
     file: ''
+  },
+  {
+    id: 2,
+    tracking_number: 'CPMSD-2025-07-002',
+    type: 'Letter',
+    subject: 'Staff Performance Evaluation Guidelines',
+    date_of_entry: '2025-07-22',
+    sender: 'HR Department',
+    priority: 'Normal',
+    status: 'Received',
+    current_handler: 'Department Head',
+    file: 'sample.pdf'
+  },
+  {
+    id: 3,
+    tracking_number: 'CPMSD-2025-07-003',
+    type: 'PR',
+    subject: 'Office Equipment Purchase Request',
+    date_of_entry: '2025-07-23',
+    sender: 'IT Support',
+    priority: 'Normal',
+    status: 'For Signature',
+    current_handler: 'Procurement Officer',
+    file: 'equipment.pdf'
+  },
+  {
+    id: 4,
+    tracking_number: 'CPMSD-2025-07-004',
+    type: 'DV',
+    subject: 'Travel Allowance Disbursement',
+    date_of_entry: '2025-07-24',
+    sender: 'Accounting Division',
+    priority: 'Urgent',
+    status: 'Pending',
+    current_handler: 'Finance Manager',
+    file: ''
+  },
+  {
+    id: 5,
+    tracking_number: 'CPMSD-2025-07-005',
+    type: 'Memo',
+    subject: 'Security Protocol Updates',
+    date_of_entry: '2025-07-25',
+    sender: 'Security Department',
+    priority: 'Confidential',
+    status: 'Received',
+    current_handler: 'All Department Heads',
+    file: 'security.pdf'
+  },
+  {
+    id: 6,
+    tracking_number: 'CPMSD-2025-07-006',
+    type: 'Letter',
+    subject: 'Annual Audit Schedule Notification',
+    date_of_entry: '2025-07-21',
+    sender: 'External Auditor',
+    priority: 'Normal',
+    status: 'Completed',
+    current_handler: 'Records Section',
+    file: 'audit.pdf'
+  },
+  {
+    id: 7,
+    tracking_number: 'CPMSD-2025-07-007',
+    type: 'PR',
+    subject: 'Training Materials Procurement',
+    date_of_entry: '2025-07-19',
+    sender: 'Training Coordinator',
+    priority: 'Normal',
+    status: 'For Signature',
+    current_handler: 'Budget Officer',
+    file: ''
+  },
+  {
+    id: 8,
+    tracking_number: 'CPMSD-2025-07-008',
+    type: 'DV',
+    subject: 'Overtime Payment Authorization',
+    date_of_entry: '2025-07-18',
+    sender: 'Payroll Department',
+    priority: 'Urgent',
+    status: 'Returned',
+    current_handler: 'HR Manager',
+    file: 'overtime.pdf'
+  },
+  {
+    id: 9,
+    tracking_number: 'CPMSD-2025-07-009',
+    type: 'Memo',
+    subject: 'Holiday Work Schedule Announcement',
+    date_of_entry: '2025-07-17',
+    sender: 'Administration Office',
+    priority: 'Normal',
+    status: 'Completed',
+    current_handler: 'All Staff',
+    file: 'schedule.pdf'
+  },
+  {
+    id: 10,
+    tracking_number: 'CPMSD-2025-07-010',
+    type: 'Letter',
+    subject: 'Vendor Contract Renewal Notice',
+    date_of_entry: '2025-07-16',
+    sender: 'Procurement Office',
+    priority: 'Normal',
+    status: 'Pending',
+    current_handler: 'Legal Department',
+    file: ''
   }
 ])
 
@@ -331,7 +438,7 @@ const archivedDocuments = ref([
     priority: 'Normal',
     status: 'Completed',
     current_handler: 'Records Section',
-    file: '',
+    file: 'annual_report.pdf',
     archived_type: 'incoming'
   },
   {
@@ -344,7 +451,137 @@ const archivedDocuments = ref([
     priority: 'Confidential',
     status: 'Completed',
     current_handler: 'Procurement',
-    file: '',
+    file: 'equipment_pr.pdf',
+    archived_type: 'outgoing'
+  },
+  {
+    id: 103,
+    tracking_number: 'CPMSD-2025-06-008',
+    type: 'Memo',
+    subject: 'Q2 Performance Review Summary',
+    date_of_entry: '2025-06-08',
+    sender: 'HR Department',
+    priority: 'Confidential',
+    status: 'Completed',
+    current_handler: 'Management',
+    file: 'performance.pdf',
+    archived_type: 'incoming'
+  },
+  {
+    id: 104,
+    tracking_number: 'CPMSD-2025-06-030',
+    type: 'DV',
+    subject: 'Monthly Utility Payment',
+    date_of_entry: '2025-06-30',
+    sender: 'Finance Division',
+    priority: 'Urgent',
+    status: 'Completed',
+    current_handler: 'Cashier',
+    file: 'utility.pdf',
+    archived_type: 'outgoing'
+  },
+  {
+    id: 105,
+    tracking_number: 'CPMSD-2025-06-012',
+    type: 'Letter',
+    subject: 'Compliance Certificate Submission',
+    date_of_entry: '2025-06-12',
+    sender: 'Quality Assurance',
+    priority: 'Normal',
+    status: 'Completed',
+    current_handler: 'Director',
+    file: 'compliance.pdf',
+    archived_type: 'incoming'
+  },
+  {
+    id: 106,
+    tracking_number: 'CPMSD-2025-06-025',
+    type: 'Memo',
+    subject: 'Office Relocation Guidelines',
+    date_of_entry: '2025-06-25',
+    sender: 'Admin Office',
+    priority: 'Normal',
+    status: 'Completed',
+    current_handler: 'All Departments',
+    file: 'relocation.pdf',
+    archived_type: 'outgoing'
+  },
+  {
+    id: 107,
+    tracking_number: 'CPMSD-2025-06-018',
+    type: 'PR',
+    subject: 'Medical Supplies Purchase',
+    date_of_entry: '2025-06-18',
+    sender: 'Medical Unit',
+    priority: 'Urgent',
+    status: 'Completed',
+    current_handler: 'Procurement',
+    file: 'medical.pdf',
+    archived_type: 'incoming'
+  },
+  {
+    id: 108,
+    tracking_number: 'CPMSD-2025-06-005',
+    type: 'DV',
+    subject: 'Training Expenses Reimbursement',
+    date_of_entry: '2025-06-05',
+    sender: 'Finance Division',
+    priority: 'Normal',
+    status: 'Completed',
+    current_handler: 'Accounting',
+    file: 'training_exp.pdf',
+    archived_type: 'outgoing'
+  },
+  {
+    id: 109,
+    tracking_number: 'CPMSD-2025-05-028',
+    type: 'Letter',
+    subject: 'Partnership Agreement Proposal',
+    date_of_entry: '2025-05-28',
+    sender: 'Business Development',
+    priority: 'Confidential',
+    status: 'Completed',
+    current_handler: 'Legal Affairs',
+    file: 'partnership.pdf',
+    archived_type: 'incoming'
+  },
+  {
+    id: 110,
+    tracking_number: 'CPMSD-2025-05-015',
+    type: 'Memo',
+    subject: 'Environmental Safety Guidelines',
+    date_of_entry: '2025-05-15',
+    sender: 'Safety Officer',
+    priority: 'Normal',
+    status: 'Completed',
+    current_handler: 'All Staff',
+    file: 'safety.pdf',
+    archived_type: 'outgoing'
+  },
+  {
+    id: 111,
+    tracking_number: 'CPMSD-2025-05-022',
+    type: 'PR',
+    subject: 'Vehicle Maintenance Service',
+    date_of_entry: '2025-05-22',
+    sender: 'Transport Division',
+    priority: 'Normal',
+    status: 'Completed',
+    current_handler: 'Procurement',
+    file: 'vehicle.pdf',
+    archived_type: 'incoming'
+  },
+  {
+    id: 112,
+    tracking_number: 'CPMSD-2025-05-010',
+    type: 'DV',
+    subject: 'Conference Registration Payment',
+    date_of_entry: '2025-05-10',
+    sender: 'Finance Division',
+    priority: 'Urgent',
+    status: 'Completed',
+    current_handler: 'Cashier',
+    file: 'conference.pdf',
     archived_type: 'outgoing'
   }
 ])
@@ -488,7 +725,3 @@ function statusClasses(status) {
   }[status] || 'bg-gray-100 text-gray-600'
 }
 </script>
-
-<style scoped>
-/* No extra styles */
-</style>

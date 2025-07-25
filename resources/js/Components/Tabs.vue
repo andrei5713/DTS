@@ -8,7 +8,9 @@
                 class="relative cursor-pointer transition-all duration-150"
                 :class="[
                     'select-none px-5 py-2 rounded-t-md font-semibold',
-                    tab.value === activeTab ? 'bg-white shadow text-dark z-10' : 'bg-gray-200 text-gray-600 hover:bg-white/80'
+                    tab.value === activeTab 
+                        ? 'bg-white shadow text-gray-800 z-10' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-50 hover:text-gray-800 shadow-sm border border-gray-300'
                 ]"
                 @click="setActiveTab(tab.value)"
             >
