@@ -1,56 +1,138 @@
 <template>
-    <div class="bg-gray-200 relative">
-        <div class="h-8 flex justify-evenly">
-            <div v-for="(tab, idx) in tabs" :key="tab.value" :class="[
-                'h-full flex items-center select-none box-border relative cursor-pointer z-10 transition-[z-index] duration-150',
-                tab.value !== tabs[tabs.length - 1].value ? 'mr-[24px]' : '',
-                tab.value === activeTab ? 'z-[2]' : ''
-            ]" :style="{ width: tabWidth + 'px' }" @click="setActiveTab(tab.value)">
-                <div class="w-full h-full flex absolute">
-
-                    <div class="flex-1 h-full shadow-t-lg transition-colors duration-150" :class="[
-                        'rounded-t-[10px]',
-                        tab.value === activeTab ? 'bg-white' : 'bg-gray-200'
-                    ]"></div>
-
-                </div>
-                <div class="absolute left-20 font-semibold"
-                    :class="tab.value === activeTab ? 'text-dark' : 'text-dark'">
-                    {{ tab.label }}
-                </div>
-            </div>
+  <div class="nav-tabs-wrapper">
+    <div class="nav-tabs-content justify-center">
+      <div
+        v-for="(tab, idx) in tabs"
+        :key="tab.value"
+        class="nav-tab"
+        :class="{ active: tab.value === activeTab }"
+        :style="{ width: tabWidth + 'px' }"
+        @click="setActiveTab(tab.value)"
+      >
+        <div class="nav-tab-background">
+          <svg class="nav-tab-before" width="7" height="7">
+            <path d="M 0 7 A 7 7 0 0 0 7 0 L 7 7 Z"></path>
+          </svg>
+          <div class="nav-tab-content"></div>
+          <svg class="nav-tab-after" width="7" height="7">
+            <path d="M 0 0 A 7 7 0 0 0 7 7 L 0 7 Z"></path>
+          </svg>
         </div>
-        <div class="bg-white rounded-lg shadow-lg px-3 py-3 pt-4">
-            <slot :active-tab="activeTab" />
-        </div>
+        <div class="nav-tab-label">{{ tab.label }}</div>
+      </div>
     </div>
+    <div class="bg-white rounded-b-lg -mt-[1px] relative z-0" style="border-top: none; border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
+      <slot :active-tab="activeTab" />
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, watch, defineProps, defineEmits } from 'vue'
 
 const props = defineProps({
-    modelValue: {
-        type: String,
-        default: 'incoming',
-    },
+  modelValue: {
+    type: String,
+    default: 'incoming',
+  },
 })
 const emit = defineEmits(['update:activeTab'])
 
 const tabs = [
-    { label: 'Incoming', value: 'incoming' },
-    { label: 'Outgoing', value: 'outgoing' },
+  { label: 'Incoming', value: 'incoming' },
+  { label: 'Outgoing', value: 'outgoing' },
 ]
 
 const tabWidth = ref(245)
 const activeTab = ref(props.modelValue)
 
 function setActiveTab(tab) {
-    activeTab.value = tab
-    emit('update:activeTab', tab)
+  activeTab.value = tab
+  emit('update:activeTab', tab)
 }
 
 watch(() => props.modelValue, (val) => {
-    activeTab.value = val
+  activeTab.value = val
 })
 </script>
+
+<style scoped>
+.nav-tabs-wrapper {
+  padding-top: 10px;
+  background-color: #dee1e6;
+  position: relative;
+  z-index: 0;
+}
+.nav-tabs-content {
+  height: 40px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 0;
+}
+.nav-tab {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  box-sizing: border-box;
+  position: relative;
+  margin-right: 24px;
+  cursor: pointer;
+  z-index: 0;
+  transition: z-index 0.15s;
+}
+.nav-tab:last-child {
+  margin-right: 0;
+}
+.nav-tab-background {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+.nav-tab-content {
+  flex: 1;
+  height: 100%;
+  background: #f2f3f5;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border: 1px solid #bfc4c9;
+  border-bottom: none;
+  transition: background 150ms;
+}
+.nav-tab.active .nav-tab-content {
+  background: #fff;
+  border-color: #bfc4c9;
+}
+.nav-tab-before,
+.nav-tab-after {
+  display: block;
+  position: relative;
+  z-index: 0;
+  fill: #f2f3f5;
+  transition: fill 150ms;
+}
+.nav-tab.active .nav-tab-before,
+.nav-tab.active .nav-tab-after {
+  fill: #fff;
+}
+.nav-tab-label {
+  position: relative;
+  z-index: 0;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #595959;
+  margin: 0 24px;
+  pointer-events: none;
+  transition: color 150ms;
+  white-space: nowrap;
+}
+.nav-tab.active .nav-tab-label {
+  color: #222;
+}
+</style> 
