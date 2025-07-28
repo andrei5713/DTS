@@ -1,3 +1,37 @@
+After cloning this repo, do the following steps:
+
+1. Type "composer install" in your terminal/cmd inside the cloned folder
+2. Type "npm install" in your terminal/cmd inside the cloned folder
+3. Type "cp .env.example .env" in your terminal/cmd inside the cloned folder
+4. Type "php artisan migrate" in your terminal/cmd inside the cloned folder
+5. Type "php artisan key:generate" in your terminal/cmd inside the cloned folder
+6. Type "php artisan serve" in your terminal/cmd inside the cloned folder
+7. Execute another terminal/cmd inside the cloned folder and run "npm run dev"
+
+Install the following: ("npm list depth=0" to check if all modules below are installed)
+1. Tailwind CSS: for customize design
+   npm install tailwindcss@3.4.17 postcss@8.5.6 autoprefixer@10.4.21,
+   npx tailwindcss init -p
+   
+2. Inertia.js: for routing
+   composer require inertiajs/inertia-laravel (server-side),
+   php artisan inertia:middleware (middleware),
+   npm install @inertiajs/vue3 (client-side)
+
+3. Ziggy: composer require tightenco/ziggy (for routing too)
+
+4. Vue-apexcharts: npm install apexcharts --save (for frontend charts)
+
+5. Primeuix/themes: npm i @primeuix/themes
+
+6. Axios: npm i axios (is for making requests to external servers from the browser)
+
+7. Lucide Icons: npm install lucide-vue-next (for Icons)
+
+8. Others: npm install vue@3.5.17 @vitejs/plugin-vue@5.2.4 vue3-apexcharts@1.8.0
+
+9. Sweet Alert 2: npm i sweetalert2 (for alerts and confirmations)
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
@@ -59,37 +93,3 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-
-After cloning this repo, do the following steps:
-
-1. Type "composer install" in your terminal/cmd inside the cloned folder
-2. Type "npm install" in your terminal/cmd inside the cloned folder
-3. Type "cp .env.example .env" in your terminal/cmd inside the cloned folder
-4. Type "php artisan migrate" in your terminal/cmd inside the cloned folder
-5. Type "php artisan key:generate" in your terminal/cmd inside the cloned folder
-6. Type "php artisan serve" in your terminal/cmd inside the cloned folder
-7. Execute another terminal/cmd inside the cloned folder and run "npm run dev"
-
-Install the following: ("npm list depth=0" to check if all modules below are installed)
-1. Tailwind CSS: for customize design
-   npm install tailwindcss@3.4.17 postcss@8.5.6 autoprefixer@10.4.21,
-   npx tailwindcss init -p
-   
-2. Inertia.js: for routing
-   composer require inertiajs/inertia-laravel (server-side),
-   php artisan inertia:middleware (middleware),
-   npm install @inertiajs/vue3 (client-side)
-
-3. Ziggy: composer require tightenco/ziggy (for routing too)
-
-4. Vue-apexcharts: npm install apexcharts --save (for frontend charts)
-
-5. Primeuix/themes: npm i @primeuix/themes
-
-6. Axios: npm i axios (is for making requests to external servers from the browser)
-
-7. Lucide Icons: npm install lucide-vue-next (for Icons)
-
-8. Others: npm install vue@3.5.17 @vitejs/plugin-vue@5.2.4 vue3-apexcharts@1.8.0
-
-9. Sweet Alert 2: npm i sweetalert2 (for alerts and confirmations)
