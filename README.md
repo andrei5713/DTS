@@ -28,7 +28,7 @@ Install the following: ("npm list depth=0" to check if all modules below are ins
 
 7. Lucide Icons: npm install lucide-vue-next (for Icons)
 
-8. Others: npm install vue@3.5.17 @vitejs/plugin-vue@5.2.4 vue3-apexcharts@1.8.0
+8. Others: npm i vue@3.5.17, npm i @vitejs/plugin-vue@5.2.4, npm i vue3-apexcharts@1.8.0
 
 9. Sweet Alert 2: npm i sweetalert2 (for alerts and confirmations)
 
