@@ -31,9 +31,11 @@
                     <th class="px-4 py-2">Subject</th>
                     <th class="px-4 py-2">Date</th>
                     <th class="px-4 py-2">Sender</th>
+                    <th class="px-4 py-2">Origination Office</th>
                     <th class="px-4 py-2">Priority</th>
                     <th class="px-4 py-2">Status</th>
                     <th class="px-4 py-2">Current Handler</th>
+                    <th class="px-4 py-2">Remarks</th>
                     <th class="px-4 py-2">File</th>
                     <th class="px-4 py-2">Actions</th>
                   </tr>
@@ -45,6 +47,7 @@
                     <td class="px-4 py-2">{{ doc.subject }}</td>
                     <td class="px-4 py-2">{{ doc.date_of_entry }}</td>
                     <td class="px-4 py-2">{{ doc.sender }}</td>
+                    <td class="px-4 py-2">{{ doc.origination_office }}</td>
                     <td class="px-4 py-2">
                       <span :class="priorityClasses(doc.priority)"
                         class="px-2 py-1 rounded text-xs font-medium capitalize">{{ doc.priority }}</span>
@@ -54,6 +57,7 @@
                         class="px-2 py-1 rounded text-xs font-semibold capitalize">{{ doc.status }}</span>
                     </td>
                     <td class="px-4 py-2">{{ doc.current_handler }}</td>
+                    <td class="px-4 py-2">{{ doc.remarks || '-' }}</td>
                     <td class="px-4 py-2">
                       <a v-if="doc.file" :href="doc.file" target="_blank"
                         class="text-blue-600 hover:underline text-sm">View</a>
@@ -99,9 +103,11 @@
                     <th class="px-4 py-2">Subject</th>
                     <th class="px-4 py-2">Date Sent</th>
                     <th class="px-4 py-2">Recipient</th>
+                    <th class="px-4 py-2">Origination Office</th>
                     <th class="px-4 py-2">Priority</th>
                     <th class="px-4 py-2">Status</th>
                     <th class="px-4 py-2">Current Handler</th>
+                    <th class="px-4 py-2">Remarks</th>
                     <th class="px-4 py-2">File</th>
                     <th class="px-4 py-2">Actions</th>
                   </tr>
@@ -113,6 +119,7 @@
                     <td class="px-4 py-2">{{ doc.subject }}</td>
                     <td class="px-4 py-2">{{ doc.date_of_entry }}</td>
                     <td class="px-4 py-2">{{ doc.sender }}</td>
+                    <td class="px-4 py-2">{{ doc.origination_office }}</td>
                     <td class="px-4 py-2">
                       <span :class="priorityClasses(doc.priority)"
                         class="px-2 py-1 rounded text-xs font-medium capitalize">{{ doc.priority }}</span>
@@ -122,6 +129,7 @@
                         class="px-2 py-1 rounded text-xs font-semibold capitalize">{{ doc.status }}</span>
                     </td>
                     <td class="px-4 py-2">{{ doc.current_handler }}</td>
+                    <td class="px-4 py-2">{{ doc.remarks || '-' }}</td>
                     <td class="px-4 py-2">
                       <a v-if="doc.file" :href="doc.file" target="_blank"
                         class="text-blue-600 hover:underline text-sm">View</a>
@@ -168,9 +176,11 @@
                     <th class="px-4 py-2">Subject</th>
                     <th class="px-4 py-2">Date</th>
                     <th class="px-4 py-2">Sender</th>
+                    <th class="px-4 py-2">Origination Office</th>
                     <th class="px-4 py-2">Priority</th>
                     <th class="px-4 py-2">Status</th>
                     <th class="px-4 py-2">Current Handler</th>
+                    <th class="px-4 py-2">Remarks</th>
                     <th class="px-4 py-2">File</th>
                     <th class="px-4 py-2">Actions</th>
                   </tr>
@@ -182,6 +192,7 @@
                     <td class="px-4 py-2">{{ doc.subject }}</td>
                     <td class="px-4 py-2">{{ doc.date_of_entry }}</td>
                     <td class="px-4 py-2">{{ doc.sender }}</td>
+                    <td class="px-4 py-2">{{ doc.origination_office }}</td>
                     <td class="px-4 py-2">
                       <span :class="priorityClasses(doc.priority)"
                         class="px-2 py-1 rounded text-xs font-medium capitalize">{{ doc.priority }}</span>
@@ -191,6 +202,7 @@
                         class="px-2 py-1 rounded text-xs font-semibold capitalize">{{ doc.status }}</span>
                     </td>
                     <td class="px-4 py-2">{{ doc.current_handler }}</td>
+                    <td class="px-4 py-2">{{ doc.remarks || '-' }}</td>
                     <td class="px-4 py-2">
                       <a v-if="doc.file" :href="doc.file" target="_blank"
                         class="text-blue-600 hover:underline text-sm">View</a>
@@ -213,9 +225,11 @@
                     <th class="px-4 py-2">Subject</th>
                     <th class="px-4 py-2">Date Sent</th>
                     <th class="px-4 py-2">Recipient</th>
+                    <th class="px-4 py-2">Origination Office</th>
                     <th class="px-4 py-2">Priority</th>
                     <th class="px-4 py-2">Status</th>
                     <th class="px-4 py-2">Current Handler</th>
+                    <th class="px-4 py-2">Remarks</th>
                     <th class="px-4 py-2">File</th>
                     <th class="px-4 py-2">Actions</th>
                   </tr>
@@ -227,6 +241,7 @@
                     <td class="px-4 py-2">{{ doc.subject }}</td>
                     <td class="px-4 py-2">{{ doc.date_of_entry }}</td>
                     <td class="px-4 py-2">{{ doc.sender }}</td>
+                    <td class="px-4 py-2">{{ doc.origination_office }}</td>
                     <td class="px-4 py-2">
                       <span :class="priorityClasses(doc.priority)"
                         class="px-2 py-1 rounded text-xs font-medium capitalize">{{ doc.priority }}</span>
@@ -236,6 +251,7 @@
                         class="px-2 py-1 rounded text-xs font-semibold capitalize">{{ doc.status }}</span>
                     </td>
                     <td class="px-4 py-2">{{ doc.current_handler }}</td>
+                    <td class="px-4 py-2">{{ doc.remarks || '-' }}</td>
                     <td class="px-4 py-2">
                       <a v-if="doc.file" :href="doc.file" target="_blank"
                         class="text-blue-600 hover:underline text-sm">View</a>
@@ -266,12 +282,21 @@
         <input type="date" v-model="newDoc.date_of_entry" class="w-full border rounded px-3 py-2 text-sm" disabled />
         <input v-model="newDoc.sender" placeholder="Recipient" class="w-full border rounded px-3 py-2 text-sm" required />
 
+        <select v-model="newDoc.origination_office" class="w-full border rounded px-3 py-2 text-sm" required>
+          <option value="" disabled>Select origination office</option>
+          <option value="Internal">Internal</option>
+          <option value="External">External</option>
+        </select>
+
         <select v-model="newDoc.priority" class="w-full border rounded px-3 py-2 text-sm" required>
           <option value="" disabled>Select priority level</option>
           <option value="Normal">Normal</option>
           <option value="Urgent">Urgent</option>
           <option value="Confidential">Confidential</option>
         </select>
+
+        <textarea v-model="newDoc.remarks" placeholder="Remarks (optional)" 
+          class="w-full border rounded px-3 py-2 text-sm h-20 resize-none"></textarea>
 
         <input type="file" accept="application/pdf" @change="handleFileUpload" class="w-full" required />
 
@@ -311,9 +336,11 @@ const documents = ref([
     subject: 'Budget Request for Q3',
     date_of_entry: '2025-07-20',
     sender: 'Finance Division',
+    origination_office: 'Internal',
     priority: 'Urgent',
     status: 'Pending',
     current_handler: 'Office of the Director',
+    remarks: 'Requires immediate attention due to upcoming deadline',
     file: ''
   },
   {
@@ -323,9 +350,11 @@ const documents = ref([
     subject: 'Staff Performance Evaluation Guidelines',
     date_of_entry: '2025-07-22',
     sender: 'HR Department',
+    origination_office: 'Internal',
     priority: 'Normal',
     status: 'Received',
     current_handler: 'Department Head',
+    remarks: 'Annual performance review cycle documentation',
     file: 'sample.pdf'
   },
   {
@@ -335,9 +364,11 @@ const documents = ref([
     subject: 'Office Equipment Purchase Request',
     date_of_entry: '2025-07-23',
     sender: 'IT Support',
+    origination_office: 'Internal',
     priority: 'Normal',
     status: 'For Signature',
     current_handler: 'Procurement Officer',
+    remarks: 'Computer replacement for damaged units',
     file: 'equipment.pdf'
   },
   {
@@ -347,9 +378,11 @@ const documents = ref([
     subject: 'Travel Allowance Disbursement',
     date_of_entry: '2025-07-24',
     sender: 'Accounting Division',
+    origination_office: 'Internal',
     priority: 'Urgent',
     status: 'Pending',
     current_handler: 'Finance Manager',
+    remarks: 'Business trip reimbursement for regional meeting',
     file: ''
   },
   {
@@ -359,9 +392,11 @@ const documents = ref([
     subject: 'Security Protocol Updates',
     date_of_entry: '2025-07-25',
     sender: 'Security Department',
+    origination_office: 'External',
     priority: 'Confidential',
     status: 'Received',
     current_handler: 'All Department Heads',
+    remarks: 'New security measures effective immediately',
     file: 'security.pdf'
   },
   {
@@ -371,9 +406,11 @@ const documents = ref([
     subject: 'Annual Audit Schedule Notification',
     date_of_entry: '2025-07-21',
     sender: 'External Auditor',
+    origination_office: 'External',
     priority: 'Normal',
     status: 'Completed',
     current_handler: 'Records Section',
+    remarks: 'Audit schedule confirmed for next quarter',
     file: 'audit.pdf'
   },
   {
@@ -383,9 +420,11 @@ const documents = ref([
     subject: 'Training Materials Procurement',
     date_of_entry: '2025-07-19',
     sender: 'Training Coordinator',
+    origination_office: 'Internal',
     priority: 'Normal',
     status: 'For Signature',
     current_handler: 'Budget Officer',
+    remarks: 'Materials for employee development program',
     file: ''
   },
   {
@@ -395,9 +434,11 @@ const documents = ref([
     subject: 'Overtime Payment Authorization',
     date_of_entry: '2025-07-18',
     sender: 'Payroll Department',
+    origination_office: 'Internal',
     priority: 'Urgent',
     status: 'Returned',
     current_handler: 'HR Manager',
+    remarks: 'Missing required signatures, returned for completion',
     file: 'overtime.pdf'
   },
   {
@@ -407,9 +448,11 @@ const documents = ref([
     subject: 'Holiday Work Schedule Announcement',
     date_of_entry: '2025-07-17',
     sender: 'Administration Office',
+    origination_office: 'Internal',
     priority: 'Normal',
     status: 'Completed',
     current_handler: 'All Staff',
+    remarks: 'Holiday schedule distributed to all departments',
     file: 'schedule.pdf'
   },
   {
@@ -419,9 +462,11 @@ const documents = ref([
     subject: 'Vendor Contract Renewal Notice',
     date_of_entry: '2025-07-16',
     sender: 'Procurement Office',
+    origination_office: 'External',
     priority: 'Normal',
     status: 'Pending',
     current_handler: 'Legal Department',
+    remarks: 'Contract expires end of month, renewal pending approval',
     file: ''
   }
 ])
@@ -435,114 +480,12 @@ const archivedDocuments = ref([
     subject: 'Annual Report Submission',
     date_of_entry: '2025-06-15',
     sender: 'Regional Office',
+    origination_office: 'External',
     priority: 'Normal',
     status: 'Completed',
     current_handler: 'Records Section',
+    remarks: 'Annual report successfully submitted and filed',
     file: 'annual_report.pdf',
-    archived_type: 'incoming'
-  },
-  {
-    id: 102,
-    tracking_number: 'CPMSD-2025-06-022',
-    type: 'PR',
-    subject: 'Equipment Purchase Request',
-    date_of_entry: '2025-06-22',
-    sender: 'IT Department',
-    priority: 'Confidential',
-    status: 'Completed',
-    current_handler: 'Procurement',
-    file: 'equipment_pr.pdf',
-    archived_type: 'outgoing'
-  },
-  {
-    id: 103,
-    tracking_number: 'CPMSD-2025-06-008',
-    type: 'Memo',
-    subject: 'Q2 Performance Review Summary',
-    date_of_entry: '2025-06-08',
-    sender: 'HR Department',
-    priority: 'Confidential',
-    status: 'Completed',
-    current_handler: 'Management',
-    file: 'performance.pdf',
-    archived_type: 'incoming'
-  },
-  {
-    id: 104,
-    tracking_number: 'CPMSD-2025-06-030',
-    type: 'DV',
-    subject: 'Monthly Utility Payment',
-    date_of_entry: '2025-06-30',
-    sender: 'Finance Division',
-    priority: 'Urgent',
-    status: 'Completed',
-    current_handler: 'Cashier',
-    file: 'utility.pdf',
-    archived_type: 'outgoing'
-  },
-  {
-    id: 105,
-    tracking_number: 'CPMSD-2025-06-012',
-    type: 'Letter',
-    subject: 'Compliance Certificate Submission',
-    date_of_entry: '2025-06-12',
-    sender: 'Quality Assurance',
-    priority: 'Normal',
-    status: 'Completed',
-    current_handler: 'Director',
-    file: 'compliance.pdf',
-    archived_type: 'incoming'
-  },
-  {
-    id: 106,
-    tracking_number: 'CPMSD-2025-06-025',
-    type: 'Memo',
-    subject: 'Office Relocation Guidelines',
-    date_of_entry: '2025-06-25',
-    sender: 'Admin Office',
-    priority: 'Normal',
-    status: 'Completed',
-    current_handler: 'All Departments',
-    file: 'relocation.pdf',
-    archived_type: 'outgoing'
-  },
-  {
-    id: 107,
-    tracking_number: 'CPMSD-2025-06-018',
-    type: 'PR',
-    subject: 'Medical Supplies Purchase',
-    date_of_entry: '2025-06-18',
-    sender: 'Medical Unit',
-    priority: 'Urgent',
-    status: 'Completed',
-    current_handler: 'Procurement',
-    file: 'medical.pdf',
-    archived_type: 'incoming'
-  },
-  {
-    id: 108,
-    tracking_number: 'CPMSD-2025-06-005',
-    type: 'DV',
-    subject: 'Training Expenses Reimbursement',
-    date_of_entry: '2025-06-05',
-    sender: 'Finance Division',
-    priority: 'Normal',
-    status: 'Completed',
-    current_handler: 'Accounting',
-    file: 'training_exp.pdf',
-    archived_type: 'outgoing'
-  },
-  {
-    id: 109,
-    tracking_number: 'CPMSD-2025-05-028',
-    type: 'Letter',
-    subject: 'Partnership Agreement Proposal',
-    date_of_entry: '2025-05-28',
-    sender: 'Business Development',
-    priority: 'Confidential',
-    status: 'Completed',
-    current_handler: 'Legal Affairs',
-    file: 'partnership.pdf',
     archived_type: 'incoming'
   },
   {
@@ -552,9 +495,11 @@ const archivedDocuments = ref([
     subject: 'Environmental Safety Guidelines',
     date_of_entry: '2025-05-15',
     sender: 'Safety Officer',
+    origination_office: 'Internal',
     priority: 'Normal',
     status: 'Completed',
     current_handler: 'All Staff',
+    remarks: 'Environmental safety protocols updated',
     file: 'safety.pdf',
     archived_type: 'outgoing'
   },
@@ -565,9 +510,11 @@ const archivedDocuments = ref([
     subject: 'Vehicle Maintenance Service',
     date_of_entry: '2025-05-22',
     sender: 'Transport Division',
+    origination_office: 'Internal',
     priority: 'Normal',
     status: 'Completed',
     current_handler: 'Procurement',
+    remarks: 'Scheduled maintenance completed for all vehicles',
     file: 'vehicle.pdf',
     archived_type: 'incoming'
   },
@@ -578,11 +525,133 @@ const archivedDocuments = ref([
     subject: 'Conference Registration Payment',
     date_of_entry: '2025-05-10',
     sender: 'Finance Division',
+    origination_office: 'Internal',
     priority: 'Urgent',
     status: 'Completed',
     current_handler: 'Cashier',
+    remarks: 'Conference registration fees paid on time',
     file: 'conference.pdf',
     archived_type: 'outgoing'
+  },
+  {
+    id: 102,
+    tracking_number: 'CPMSD-2025-06-022',
+    type: 'PR',
+    subject: 'Equipment Purchase Request',
+    date_of_entry: '2025-06-22',
+    sender: 'IT Department',
+    origination_office: 'Internal',
+    priority: 'Confidential',
+    status: 'Completed',
+    current_handler: 'Procurement',
+    remarks: 'Specialized equipment procurement completed',
+    file: 'equipment_pr.pdf',
+    archived_type: 'outgoing'
+  },
+  {
+    id: 103,
+    tracking_number: 'CPMSD-2025-06-008',
+    type: 'Memo',
+    subject: 'Q2 Performance Review Summary',
+    date_of_entry: '2025-06-08',
+    sender: 'HR Department',
+    origination_office: 'Internal',
+    priority: 'Confidential',
+    status: 'Completed',
+    current_handler: 'Management',
+    remarks: 'Performance review summary finalized and distributed',
+    file: 'performance.pdf',
+    archived_type: 'incoming'
+  },
+  {
+    id: 104,
+    tracking_number: 'CPMSD-2025-06-030',
+    type: 'DV',
+    subject: 'Monthly Utility Payment',
+    date_of_entry: '2025-06-30',
+    sender: 'Finance Division',
+    origination_office: 'Internal',
+    priority: 'Urgent',
+    status: 'Completed',
+    current_handler: 'Cashier',
+    remarks: 'Utility payments processed on time',
+    file: 'utility.pdf',
+    archived_type: 'outgoing'
+  },
+  {
+    id: 105,
+    tracking_number: 'CPMSD-2025-06-012',
+    type: 'Letter',
+    subject: 'Compliance Certificate Submission',
+    date_of_entry: '2025-06-12',
+    sender: 'Quality Assurance',
+    origination_office: 'External',
+    priority: 'Normal',
+    status: 'Completed',
+    current_handler: 'Director',
+    remarks: 'Compliance requirements met and certified',
+    file: 'compliance.pdf',
+    archived_type: 'incoming'
+  },
+  {
+    id: 106,
+    tracking_number: 'CPMSD-2025-06-025',
+    type: 'Memo',
+    subject: 'Office Relocation Guidelines',
+    date_of_entry: '2025-06-25',
+    sender: 'Admin Office',
+    origination_office: 'Internal',
+    priority: 'Normal',
+    status: 'Completed',
+    current_handler: 'All Departments',
+    remarks: 'Relocation guidelines distributed to all staff',
+    file: 'relocation.pdf',
+    archived_type: 'outgoing'
+  },
+  {
+    id: 107,
+    tracking_number: 'CPMSD-2025-06-018',
+    type: 'PR',
+    subject: 'Medical Supplies Purchase',
+    date_of_entry: '2025-06-18',
+    sender: 'Medical Unit',
+    origination_office: 'Internal',
+    priority: 'Urgent',
+    status: 'Completed',
+    current_handler: 'Procurement',
+    remarks: 'Emergency medical supplies procurement',
+    file: 'medical.pdf',
+    archived_type: 'incoming'
+  },
+  {
+    id: 108,
+    tracking_number: 'CPMSD-2025-06-005',
+    type: 'DV',
+    subject: 'Training Expenses Reimbursement',
+    date_of_entry: '2025-06-05',
+    sender: 'Finance Division',
+    origination_office: 'Internal',
+    priority: 'Normal',
+    status: 'Completed',
+    current_handler: 'Accounting',
+    remarks: 'Training reimbursement processed successfully',
+    file: 'training_exp.pdf',
+    archived_type: 'outgoing'
+  },
+  {
+    id: 109,
+    tracking_number: 'CPMSD-2025-05-028',
+    type: 'Letter',
+    subject: 'Partnership Agreement Proposal',
+    date_of_entry: '2025-05-28',
+    sender: 'Business Development',
+    origination_office: 'External',
+    priority: 'Confidential',
+    status: 'Completed',
+    current_handler: 'Legal Affairs',
+    remarks: 'Partnership proposal reviewed and approved',
+    file: 'partnership.pdf',
+    archived_type: 'incoming'
   }
 ])
 
@@ -593,7 +662,9 @@ const newDoc = ref({
   subject: '',
   date_of_entry: today,
   sender: '',
+  origination_office: '',
   priority: '',
+  remarks: '',
   file: ''
 })
 
@@ -632,6 +703,11 @@ const submitDocument = () => {
     return
   }
   
+  if (!newDoc.value.origination_office) {
+    alert('Please select origination office.')
+    return
+  }
+  
   if (!newDoc.value.priority) {
     alert('Please select a priority level.')
     return
@@ -657,7 +733,9 @@ const submitDocument = () => {
     subject: '',
     date_of_entry: today,
     sender: '',
+    origination_office: '',
     priority: '',
+    remarks: '',
     file: ''
   }
 
