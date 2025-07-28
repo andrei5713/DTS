@@ -1,4 +1,4 @@
-After cloning this repo, do the following steps:
+## After cloning this repo, do the following steps:
 
 1. Type "composer install" in your terminal/cmd inside the cloned folder
 2. Type "npm install" in your terminal/cmd inside the cloned folder
