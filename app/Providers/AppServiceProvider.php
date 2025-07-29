@@ -3,8 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,10 +21,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Inertia::share([
-            'auth' => fn() => [
-                'user' => Auth::user(),
-            ],
-        ]);
+        // Configure mail for development - log emails instead of sending
+        if (app()->environment('local')) {
+            // Use log driver for development
+            config(['mail.default' => 'log']);
+        }
     }
 }

@@ -36,7 +36,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
-import { route } from '../../../vendor/tightenco/ziggy/src/js'
+import { route } from 'ziggy-js'
 import { Bell, ChevronDown } from 'lucide-vue-next'
 
 const isShowLogin = ref(false)

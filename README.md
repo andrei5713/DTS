@@ -80,7 +80,7 @@ Install the following:
    php artisan inertia:middleware (middleware),
    npm install @inertiajs/vue3 (client-side)
 
-3. Ziggy: composer require tightenco/ziggy
+3. Ziggy: composer require tightenco/ziggy (for route names in JavaScript)
 
 4. Vue-apexcharts: npm install apexcharts --save
 
