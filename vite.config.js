@@ -16,4 +16,16 @@ export default defineConfig({
             "@": Path.resolve(__dirname, "resources/js"),
         },
     },
+    server: {
+        host: "localhost",
+        port: 5173,
+        proxy: {
+            "/register": {
+                target: "http://localhost:8000",
+                changeOrigin: true,
+                secure: false,
+                cookieDomainRewrite: "localhost",
+            },
+        },
+    },
 });
