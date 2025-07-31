@@ -36,7 +36,6 @@ export function useDeleteAlert() {
       } else if (result.dismiss === Swal.DismissReason.cancel) {
         swalWithBlueButton.fire({
           title: "Cancelled",
-          text: "Your imaginary file is safe :)",
           icon: "error"
         });
         return false;

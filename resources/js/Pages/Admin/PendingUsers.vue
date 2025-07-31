@@ -34,9 +34,8 @@
                   v-model="user.assignedRole"
                   class="text-sm border border-gray-300 rounded px-2 py-1"
                 >
-                  <option value="">Select Role</option>
                   <option value="user">User</option>
-                  <option value="department">Department</option>
+                  <option value="department_head">Department Head</option>
                   <option value="admin">Admin</option>
                 </select>
               </td>
@@ -45,7 +44,6 @@
                   v-model="user.assignedUnit"
                   class="text-sm border border-gray-300 rounded px-2 py-1"
                 >
-                  <option value="">Select Unit</option>
                   <option v-for="unit in units" :key="unit.id" :value="unit.id">
                     {{ unit.full_name }}
                   </option>
@@ -87,7 +85,7 @@
         >
           <option value="">Select Role for All</option>
           <option value="user">User</option>
-          <option value="department">Department</option>
+          <option value="department_head">Department Head</option>
           <option value="admin">Admin</option>
         </select>
         <select
