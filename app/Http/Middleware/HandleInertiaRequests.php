@@ -41,9 +41,11 @@ class HandleInertiaRequests extends Middleware
                     'id' => $request->user()->id,
                     'username' => $request->user()->username,
                     'email' => $request->user()->email,
+                    'role' => $request->user()->role,
                     // add any fields you need here
                 ] : null,
             ],
+            'csrf_token' => csrf_token(),
         ]);
     }
 }

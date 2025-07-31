@@ -59,7 +59,16 @@ class LoginController extends Controller
         if (Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            return redirect()->intended($this->redirectTo);
+            $user = Auth::user();
+            
+            // Redirect based on user role
+            if ($user->role === 'admin') {
+                return redirect()->route('home'); // Redirect to home page with admin tabs
+            } elseif ($user->role === 'pending') {
+                return redirect()->route('home')->with('error', 'Your account is awaiting admin approval.');
+            } else {
+                return redirect()->route('home');
+            }
         }
 
         throw ValidationException::withMessages([

@@ -13,6 +13,10 @@ const props = defineProps({
     formData: {
         type: Object,
         default: null
+    },
+    units: {
+        type: Array,
+        default: () => []
     }
 })
 
@@ -32,9 +36,8 @@ const formData = ref({
     trackingCode: '',
     documentType: '',
     subject: '',
-    documentDate: '',
-    entryDate: '',
-    sender: '',
+    entryDate: new Date().toISOString().slice(0, 10), // auto entry date
+    uploadBy: '',
     originatingOffice: '',
     originType: 'internal',
     priority: '',
@@ -50,6 +53,7 @@ const isDocumentTypeOpen = ref(false)
 const isOriginTypeOpen = ref(false)
 const isPriorityOpen = ref(false)
 const isRoutingOpen = ref(false)
+const isDepartmentOpen = ref(false)
 
 const statusOptions = [
     { label: 'Simple', days: 3, color: 'blue', value: 'simple' },
@@ -66,9 +70,10 @@ const documentTypes = [
 ]
 
 const priorities = [
-    'Normal',
+    'Simple (3 days)',
+    'Complex (7 days)',
+    'Highly Technical (20 days)',
     'Urgent',
-    'Confidential',
 ]
 
 function closeModal() {
@@ -78,9 +83,8 @@ function closeModal() {
         trackingCode: generateTrackingNumber(),
         documentType: '',
         subject: '',
-        documentDate: '',
-        entryDate: '',
-        sender: '',
+        entryDate: new Date().toISOString().slice(0, 10), // auto entry date
+        uploadBy: '',
         originatingOffice: '',
         originType: 'internal',
         priority: '',
@@ -95,9 +99,8 @@ function resetForm() {
         trackingCode: generateTrackingNumber(),
         documentType: '',
         subject: '',
-        documentDate: '',
-        entryDate: '',
-        sender: '',
+        entryDate: new Date().toISOString().slice(0, 10), // auto entry date
+        uploadBy: '',
         originatingOffice: '',
         originType: 'internal',
         priority: '',
@@ -137,14 +140,11 @@ function validateForm() {
     if (!formData.value.subject.trim()) {
         errors.value.subject = 'Subject is required'
     }
-    if (!formData.value.documentDate) {
-        errors.value.documentDate = 'Document date is required'
-    }
     if (!formData.value.entryDate) {
         errors.value.entryDate = 'Date of entry is required'
     }
-    if (!formData.value.sender.trim()) {
-        errors.value.sender = 'Sender is required'
+    if (!formData.value.uploadBy.trim()) {
+        errors.value.uploadBy = 'Upload by is required'
     }
     if (!formData.value.originatingOffice.trim()) {
         errors.value.originatingOffice = 'Originating office is required'
@@ -200,9 +200,8 @@ watch(() => props.formData, (newVal) => {
       trackingCode: generateTrackingNumber(),
       documentType: '',
       subject: '',
-      documentDate: '',
-      entryDate: '',
-      sender: '',
+      entryDate: new Date().toISOString().slice(0, 10), // auto entry date
+      uploadBy: '',
       originatingOffice: '',
       originType: 'internal',
       priority: '',
@@ -258,44 +257,53 @@ watch(() => props.formData, (newVal) => {
                 <input id="subject" v-model="formData.subject" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.subject }" />
                 <p v-if="errors.subject" class="mt-1 text-sm text-red-600">{{ errors.subject }}</p>
               </div>
-              <!-- Document Date -->
-              <div>
-                <label for="documentDate" class="block text-sm font-medium text-gray-700 mb-1">Document Date *</label>
-                <input id="documentDate" v-model="formData.documentDate" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.documentDate }" />
-                <p v-if="errors.documentDate" class="mt-1 text-sm text-red-600">{{ errors.documentDate }}</p>
-              </div>
               <!-- Date of Entry -->
               <div>
                 <label for="entryDate" class="block text-sm font-medium text-gray-700 mb-1">Date of Entry *</label>
-                <input id="entryDate" v-model="formData.entryDate" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.entryDate }" />
+                <input id="entryDate" v-model="formData.entryDate" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.entryDate }" readonly />
                 <p v-if="errors.entryDate" class="mt-1 text-sm text-red-600">{{ errors.entryDate }}</p>
               </div>
-              <!-- Sender -->
+              <!-- Upload By -->
               <div>
-                <label for="sender" class="block text-sm font-medium text-gray-700 mb-1">Sender *</label>
-                <input id="sender" v-model="formData.sender" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.sender }" />
-                <p v-if="errors.sender" class="mt-1 text-sm text-red-600">{{ errors.sender }}</p>
-              </div>
-              <!-- Originating Office -->
-              <div>
-                <label for="originatingOffice" class="block text-sm font-medium text-gray-700 mb-1">Originating Office *</label>
-                <input id="originatingOffice" v-model="formData.originatingOffice" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.originatingOffice }" />
-                <p v-if="errors.originatingOffice" class="mt-1 text-sm text-red-600">{{ errors.originatingOffice }}</p>
+                <label for="uploadBy" class="block text-sm font-medium text-gray-700 mb-1">Upload By *</label>
+                <input id="uploadBy" v-model="formData.uploadBy" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.uploadBy }" />
+                <p v-if="errors.uploadBy" class="mt-1 text-sm text-red-600">{{ errors.uploadBy }}</p>
               </div>
               <!-- Origin Type -->
-              <div class="relative">
+              <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Origin Type *</label>
+                <input type="text" value="Internal" readonly class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" />
+              </div>
+              <!-- Routing -->
+              <div class="relative">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Routing *</label>
                 <div class="relative">
-                  <select v-model="formData.originType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" @focus="isOriginTypeOpen = true" @blur="isOriginTypeOpen = false">
+                  <select v-model="formData.routing" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" @focus="isRoutingOpen = true" @blur="isRoutingOpen = false">
                     <option value="internal">Internal</option>
                     <option value="external">External</option>
                   </select>
                   <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                    <svg class="w-5 h-5 text-gray-700 font-bold transition-transform duration-200" :class="{ 'rotate-180': isOriginTypeOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 text-gray-700 font-bold transition-transform duration-200" :class="{ 'rotate-180': isRoutingOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
                     </svg>
                   </div>
                 </div>
+              </div>
+              <!-- Department/Office -->
+              <div class="relative">
+                <label for="originatingOffice" class="block text-sm font-medium text-gray-700 mb-1">Department/Division *</label>
+                <div class="relative">
+                  <select id="originatingOffice" v-model="formData.originatingOffice" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" :class="{ 'border-red-500': errors.originatingOffice }" @focus="isDepartmentOpen = true" @blur="isDepartmentOpen = false">
+                    <option value="">Select Department/Division</option>
+                    <option v-for="unit in units" :key="unit.id" :value="unit.full_name">{{ unit.full_name }}</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                    <svg class="w-5 h-5 text-gray-700 font-bold transition-transform duration-200" :class="{ 'rotate-180': isDepartmentOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                </div>
+                <p v-if="errors.originatingOffice" class="mt-1 text-sm text-red-600">{{ errors.originatingOffice }}</p>
               </div>
               <!-- Priority Level -->
               <div class="relative">
@@ -312,21 +320,6 @@ watch(() => props.formData, (newVal) => {
                   </div>
                 </div>
                 <p v-if="errors.priority" class="mt-1 text-sm text-red-600">{{ errors.priority }}</p>
-              </div>
-              <!-- Routing -->
-              <div class="relative">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Routing *</label>
-                <div class="relative">
-                  <select v-model="formData.routing" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" @focus="isRoutingOpen = true" @blur="isRoutingOpen = false">
-                    <option value="internal">Internal</option>
-                    <option value="external">External</option>
-                  </select>
-                  <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                    <svg class="w-5 h-5 text-gray-700 font-bold transition-transform duration-200" :class="{ 'rotate-180': isRoutingOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </div>
-                </div>
               </div>
               <!-- Remarks/Description -->
               <div class="md:col-span-2">

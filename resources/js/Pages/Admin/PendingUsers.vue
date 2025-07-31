@@ -1,0 +1,203 @@
+<template>
+  <div class="space-y-6">
+    <!-- Pending Users Table -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Pending User Approvals</h3>
+        <p class="text-sm text-gray-600 mt-1">Users waiting for admin approval and role assignment</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assign Role</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assign Unit</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="user in pendingUsers" :key="user.id">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">{{ user.name }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.email }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.username }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ new Date(user.created_at).toLocaleDateString() }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <select
+                  v-model="user.assignedRole"
+                  class="text-sm border border-gray-300 rounded px-2 py-1"
+                >
+                  <option value="">Select Role</option>
+                  <option value="user">User</option>
+                  <option value="department">Department</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <select
+                  v-model="user.assignedUnit"
+                  class="text-sm border border-gray-300 rounded px-2 py-1"
+                >
+                  <option value="">Select Unit</option>
+                  <option v-for="unit in units" :key="unit.id" :value="unit.id">
+                    {{ unit.full_name }}
+                  </option>
+                </select>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                <button
+                  @click="approveUser(user)"
+                  :disabled="!user.assignedRole || !user.assignedUnit"
+                  class="text-green-600 hover:text-green-900 disabled:text-gray-400 disabled:cursor-not-allowed"
+                >
+                  Approve
+                </button>
+                <button
+                  @click="rejectUser(user)"
+                  class="text-red-600 hover:text-red-900"
+                >
+                  Reject
+                </button>
+              </td>
+            </tr>
+            <tr v-if="pendingUsers.length === 0">
+              <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
+                No pending users found
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div v-if="pendingUsers.length > 0" class="bg-white rounded-lg shadow p-6">
+      <h4 class="text-md font-medium text-gray-900 mb-4">Bulk Actions</h4>
+      <div class="flex space-x-4">
+        <select
+          v-model="bulkRole"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Select Role for All</option>
+          <option value="user">User</option>
+          <option value="department">Department</option>
+          <option value="admin">Admin</option>
+        </select>
+        <select
+          v-model="bulkUnit"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Select Unit for All</option>
+          <option v-for="unit in units" :key="unit.id" :value="unit.id">
+            {{ unit.full_name }}
+          </option>
+        </select>
+        <button
+          @click="bulkApprove"
+          :disabled="!bulkRole || !bulkUnit"
+          class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+        >
+          Approve All with Selected Role & Unit
+        </button>
+        <button
+          @click="bulkReject"
+          class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+        >
+          Reject All
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { router } from '@inertiajs/vue3'
+
+const props = defineProps({
+  pendingUsers: {
+    type: Array,
+    default: () => [],
+  },
+  units: {
+    type: Array,
+    default: () => [],
+  },
+})
+
+const pendingUsers = ref(props.pendingUsers)
+const bulkRole = ref('')
+const bulkUnit = ref('')
+
+const approveUser = (user) => {
+  if (!user.assignedRole || !user.assignedUnit) {
+    alert('Please select both role and unit before approving')
+    return
+  }
+  
+  router.put(`/admin/users/${user.id}/approve`, {
+    role: user.assignedRole,
+    unit_id: user.assignedUnit,
+  }, {
+    onSuccess: () => {
+      // Remove user from pending list
+      pendingUsers.value = pendingUsers.value.filter(u => u.id !== user.id)
+    },
+  })
+}
+
+const rejectUser = (user) => {
+  if (confirm(`Are you sure you want to reject ${user.name}?`)) {
+    router.delete(`/admin/users/${user.id}`)
+  }
+}
+
+const bulkApprove = () => {
+  if (!bulkRole.value || !bulkUnit.value) {
+    alert('Please select both role and unit for bulk approval')
+    return
+  }
+  
+  const usersToApprove = pendingUsers.value.filter(user => user.assignedRole && user.assignedUnit)
+  if (usersToApprove.length === 0) {
+    alert('Please assign roles and units to users before bulk approval')
+    return
+  }
+  
+  if (confirm(`Approve ${usersToApprove.length} users with role: ${bulkRole.value} and unit: ${bulkUnit.value}?`)) {
+    router.post('/admin/users/bulk-approve', {
+      users: usersToApprove.map(user => ({
+        id: user.id,
+        role: user.assignedRole || bulkRole.value,
+        unit_id: user.assignedUnit || bulkUnit.value,
+      })),
+    }, {
+      onSuccess: () => {
+        pendingUsers.value = []
+        bulkRole.value = ''
+        bulkUnit.value = ''
+      },
+    })
+  }
+}
+
+const bulkReject = () => {
+  if (confirm(`Reject all ${pendingUsers.value.length} pending users?`)) {
+    const userIds = pendingUsers.value.map(user => user.id)
+    router.post('/admin/users/bulk-reject', {
+      user_ids: userIds,
+    }, {
+      onSuccess: () => {
+        pendingUsers.value = []
+      },
+    })
+  }
+}
+</script> 

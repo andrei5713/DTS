@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Notifications\ResetPasswordNotification;
 
 class User extends Authenticatable
 {
@@ -12,8 +11,11 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
+        'role',
+        'unit_id',
     ];
 
     protected $hidden = [
@@ -21,14 +23,28 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    /**
-     * Send the password reset notification.
-     *
-     * @param  string  $token
-     * @return void
-     */
-    public function sendPasswordResetNotification($token)
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
+
+    public function unit()
     {
-        $this->notify(new ResetPasswordNotification($token));
+        return $this->belongsTo(Unit::class);
+    }
+
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isDepartment()
+    {
+        return $this->role === 'department';
+    }
+
+    public function isUser()
+    {
+        return $this->role === 'user';
     }
 }

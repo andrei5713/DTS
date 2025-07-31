@@ -13,12 +13,19 @@
         </div>
       </template>
     </Table>
-    <UploadModal :show="showUploadModal" title="Upload Outgoing Document" @close="showUploadModal = false; editIndex = null; editFormData = null;" @upload="handleUpload" :formData="editFormData" />
+    <UploadModal 
+      :show="showUploadModal" 
+      title="Upload Outgoing Document" 
+      @close="showUploadModal = false; editIndex = null; editFormData = null;" 
+      @upload="handleUpload" 
+      :formData="editFormData"
+      :units="units"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import Table from '@/Components/Table.vue';
 import UploadModal from '@/Components/UploadModal.vue';
 import SearchBar from '@/Components/SearchBar.vue';
@@ -31,6 +38,7 @@ const showUploadModal = ref(false);
 const searchQuery = ref('');
 const editIndex = ref(null);
 const editFormData = ref(null);
+const units = ref([]);
 const { confirmDelete } = useDeleteAlert();
 
 const columns = [
@@ -40,7 +48,7 @@ const columns = [
   { label: 'DOCUMENT DATE', key: 'documentDate' },
   { label: 'DATE OF ENTRY', key: 'entryDate' },
   { label: 'SENDER', key: 'sender' },
-  { label: 'ORIGINATING OFFICE', key: 'originatingOffice' },
+  { label: 'DEPARTMENT/DIVISION', key: 'departmentDivision' },
   { label: 'ORIGIN TYPE', key: 'originType' },
   { label: 'PRIORITY', key: 'priority' },
   { label: 'REMARKS', key: 'remarks' },
@@ -48,6 +56,16 @@ const columns = [
   { label: 'FILE', key: 'file' },
   { label: 'ACTIONS', key: 'ACTIONS' },
 ];
+
+async function fetchUnits() {
+  try {
+    const response = await fetch(route('api.units'));
+    const data = await response.json();
+    units.value = data;
+  } catch (error) {
+    console.error('Error fetching units:', error);
+  }
+}
 
 function handleUpload(uploadData) {
   const file = uploadData.get('file');
@@ -58,7 +76,7 @@ function handleUpload(uploadData) {
     documentDate: uploadData.get('documentDate'),
     entryDate: uploadData.get('entryDate'),
     sender: uploadData.get('sender'),
-    originatingOffice: uploadData.get('originatingOffice'),
+    departmentDivision: uploadData.get('departmentDivision'),
     originType: uploadData.get('originType'),
     priority: uploadData.get('priority'),
     remarks: uploadData.get('remarks'),
@@ -87,4 +105,8 @@ async function deleteRow(index) {
     rows.value.splice(index, 1);
   }
 }
+
+onMounted(() => {
+  fetchUnits();
+});
 </script> 

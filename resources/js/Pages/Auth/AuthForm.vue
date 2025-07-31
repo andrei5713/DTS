@@ -7,6 +7,7 @@ import { route } from 'ziggy-js';
 const currentMode = ref(true);
 const form = useForm({
   name: '',
+  username: '',
   email: '',
   password: '',
   password_confirmation: '', // Added for registration
@@ -81,10 +82,30 @@ const handleAuth = () => {
               required
               v-model="form.name"
               class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
-              placeholder="John Doe"
+              placeholder="Full Name"
             />
           </div>
           <div v-if="form.errors.name" class="text-sm text-red-600 mt-1">{{ form.errors.name }}</div>
+        </div>
+
+        <div v-if="!currentMode">
+          <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <User class="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              autocomplete="username"
+              required
+              v-model="form.username"
+              class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
+              placeholder="Username"
+            />
+          </div>
+          <div v-if="form.errors.username" class="text-sm text-red-600 mt-1">{{ form.errors.username }}</div>
         </div>
 
         <div>

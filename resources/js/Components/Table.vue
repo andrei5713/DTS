@@ -4,7 +4,7 @@
       <thead class="bg-gray-100">
         <tr>
           <th v-for="col in columns" :key="col.key" class="px-4 py-2 border font-semibold text-gray-700">
-            {{ col.label }}
+            {{ col.key === 'documentDate' ? 'Received By' : col.label }}
           </th>
         </tr>
       </thead>

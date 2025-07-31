@@ -32,7 +32,7 @@ const columns = [
   { label: 'DOCUMENT DATE', key: 'documentDate' },
   { label: 'DATE OF ENTRY', key: 'entryDate' },
   { label: 'SENDER', key: 'sender' },
-  { label: 'ORIGINATING OFFICE', key: 'originatingOffice' },
+  { label: 'DEPARTMENT/DIVISION', key: 'departmentDivision' },
   { label: 'ORIGIN TYPE', key: 'originType' },
   { label: 'PRIORITY', key: 'priority' },
   { label: 'REMARKS', key: 'remarks' },

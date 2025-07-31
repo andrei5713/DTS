@@ -34,8 +34,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { Link, usePage } from '@inertiajs/vue3'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { Link, usePage, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { Bell, ChevronDown } from 'lucide-vue-next'
 
@@ -52,6 +52,10 @@ const handleClickOutside = (event) => {
     }
 }
 
+const logout = () => {
+    router.post(route('logout'))
+}
+
 onMounted(() => {
     document.addEventListener('click', handleClickOutside)
 })
@@ -62,4 +66,5 @@ onBeforeUnmount(() => {
 
 const page = usePage()
 const username = page.props.auth?.user?.username || 'Guest'
+const isAdmin = computed(() => page.props.auth?.user?.role === 'admin')
 </script>

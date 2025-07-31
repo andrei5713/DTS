@@ -35,13 +35,15 @@ const props = defineProps({
     type: String,
     default: 'incoming',
   },
+  tabs: {
+    type: Array,
+    default: () => [
+      { label: 'Incoming', value: 'incoming' },
+      { label: 'Outgoing', value: 'outgoing' },
+    ],
+  },
 })
 const emit = defineEmits(['update:activeTab'])
-
-const tabs = [
-  { label: 'Incoming', value: 'incoming' },
-  { label: 'Outgoing', value: 'outgoing' },
-]
 
 const tabWidth = ref(245)
 const activeTab = ref(props.modelValue)
