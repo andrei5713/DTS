@@ -79,9 +79,9 @@ Route::middleware('auth')->group(function () {
 
     // Admin Routes
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
-        // Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-        // Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
-        // Route::get('/pending-users', [UserManagementController::class, 'pendingUsers'])->name('pending-users.index');
+         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+         Route::get('/pending-users', [UserManagementController::class, 'pendingUsers'])->name('pending-users.index');
         
         // User Management
         Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');

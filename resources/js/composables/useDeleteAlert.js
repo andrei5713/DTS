@@ -29,7 +29,7 @@ export function useDeleteAlert() {
       if (result.isConfirmed) {
         swalWithBlueButton.fire({
           title: "Deleted!",
-          text: "Your file has been deleted.",
+          text: "Deleted Successfully.",
           icon: "success"
         });
         return true;
