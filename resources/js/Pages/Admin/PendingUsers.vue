@@ -34,9 +34,9 @@
                   v-model="user.assignedRole"
                   class="text-sm border border-gray-300 rounded px-2 py-1"
                 >
-                  <option value="user">User</option>
-                  <option value="department_head">Department Head</option>
-                  <option value="admin">Admin</option>
+                  <option value="user">Record Officer</option>
+                  <option value="department_head">Director Officer</option>
+                  <option value="admin">Administrator</option>
                 </select>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -84,9 +84,9 @@
           class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">Select Role for All</option>
-          <option value="user">User</option>
-          <option value="department_head">Department Head</option>
-          <option value="admin">Admin</option>
+          <option value="user">Record Officer</option>
+          <option value="department_head">Director Officer</option>
+          <option value="admin">Administrator</option>
         </select>
         <select
           v-model="bulkUnit"
@@ -118,6 +118,9 @@
 <script setup>
 import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
+import { useUserRejectAlert } from '@/composables/useUserRejectAlert'
+
+const { confirmReject } = useUserRejectAlert()
 
 const props = defineProps({
   pendingUsers: {
@@ -151,9 +154,14 @@ const approveUser = (user) => {
   })
 }
 
-const rejectUser = (user) => {
-  if (confirm(`Are you sure you want to reject ${user.name}?`)) {
-    router.delete(`/admin/users/${user.id}`)
+const rejectUser = async (user) => {
+  const confirmed = await confirmReject(user.name)
+  if (confirmed) {
+    router.delete(`/admin/users/${user.id}`, {
+      onSuccess: () => {
+        pendingUsers.value = pendingUsers.value.filter(u => u.id !== user.id)
+      },
+    })
   }
 }
 
@@ -198,4 +206,4 @@ const bulkReject = () => {
     })
   }
 }
-</script> 
+</script>
