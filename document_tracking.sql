@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 18, 2025 at 10:21 AM
+-- Generation Time: Jul 21, 2025 at 04:45 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -38,9 +38,8 @@ CREATE TABLE `migrations` (
 --
 
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
-(1, '2025_07_18_024149_create_units_table', 1),
-(2, '2025_07_18_024222_create_users_table', 1),
-(3, '2025_07_18_040030_create_sessions_table', 2);
+(1, '2025_07_19_140029_create_sessions_table', 1),
+(2, '2025_07_19_140045_create_users_table', 1);
 
 -- --------------------------------------------------------
 
@@ -62,28 +61,10 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('RnvxPPpyHo7rNjaWPdvXuG7Aa4HG8IGuctqYxy2D', 2, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', 'YTozOntzOjY6Il90b2tlbiI7czo0MDoibm1JQjBXYWdiYUZsZ25Db3lzcG1TekpGT1d0ZFRncWF4eVBPN2VQMSI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6Mjt9', 1752825918);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `units`
---
-
-CREATE TABLE `units` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `code` varchar(255) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `units`
---
-
-INSERT INTO `units` (`id`, `code`, `name`, `created_at`, `updated_at`) VALUES
-(1, 'CPMSD', 'Corporate Planning and Management Services Department', '2025-07-17 19:57:09', '2025-07-17 19:57:09');
+('05S7PBNFglPoi10vIpN9Cv4q1LT0Gwi9yRp5EynW', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiYW1yTmZOUmtRaVY0dFlIWGoya05DcThXZUVzc2dFZ0hMWEFIaUJIQSI7czo1OiJzdGF0ZSI7czo0MDoiTEpuVGMzUW5oaThKa0pIQU9NbkZkQnBtQ3o2NmdHd1hxTkZjZ1BzYyI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6MzM6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9hdXRoL2dvb2dsZSI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=', 1753059695),
+('bxjgURMAwsIT03grSe9RxvkqUGL7m6Oo8fliWZ8Y', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', 'YTozOntzOjY6Il90b2tlbiI7czo0MDoiWEZCb0p1MnpnV25UZFo0YW9JQlMwa3ZhODR2eW1SVHE2VFMxeUs4MyI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6MjE6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMCI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=', 1753059687),
+('LxCK4R435vrIxbNO2ZIA7VqPzRcZjwaKwYb2TQi8', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', 'YToyOntzOjY6Il90b2tlbiI7czo0MDoiQnpwZk14WTBnMUZGTzduZnhJV3RManFIcFlqVWtwNm1pSGxQdlBZSyI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319fQ==', 1753061228),
+('oz2KN5Pp2Kl23hDcQdMXxi3fFvvdkpnHtEymDbeP', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', 'YToyOntzOjY6Il90b2tlbiI7czo0MDoia0lJeEFFSUplT2NpWjNKUmFQb2NKV0lpR2lIS05jeVgxdDJ0Qk9uMyI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319fQ==', 1753063476);
 
 -- --------------------------------------------------------
 
@@ -93,12 +74,11 @@ INSERT INTO `units` (`id`, `code`, `name`, `created_at`, `updated_at`) VALUES
 
 CREATE TABLE `users` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `username` varchar(255) NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
   `email` varchar(255) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `role` varchar(255) NOT NULL DEFAULT 'user',
-  `unit_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `google_id` varchar(255) DEFAULT NULL,
+  `remember_token` varchar(100) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -107,8 +87,8 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `username`, `email`, `password`, `role`, `unit_id`, `created_at`, `updated_at`) VALUES
-(2, 'CPMSD Department', 'CPMSD', 'cpmsd@nfa.gov.ph', '$2y$12$MMvrOisKywiF1JG7CR17B.Imyqrsm/EJqfjI6QqOitnGdD3Dz8pkS', 'department', 1, '2025-07-17 19:57:11', '2025-07-17 19:57:11');
+INSERT INTO `users` (`id`, `name`, `email`, `password`, `google_id`, `remember_token`, `created_at`, `updated_at`) VALUES
+(1, 'Warfreak5713', 'andreiodango15@gmail.com', NULL, NULL, NULL, '2025-07-19 06:52:16', '2025-07-19 06:52:16');
 
 --
 -- Indexes for dumped tables
@@ -129,20 +109,11 @@ ALTER TABLE `sessions`
   ADD KEY `sessions_last_activity_index` (`last_activity`);
 
 --
--- Indexes for table `units`
---
-ALTER TABLE `units`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `units_code_unique` (`code`);
-
---
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `users_username_unique` (`username`),
-  ADD UNIQUE KEY `users_email_unique` (`email`),
-  ADD KEY `users_unit_id_foreign` (`unit_id`);
+  ADD UNIQUE KEY `users_email_unique` (`email`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -152,29 +123,13 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- AUTO_INCREMENT for table `units`
---
-ALTER TABLE `units`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- Constraints for dumped tables
---
-
---
--- Constraints for table `users`
---
-ALTER TABLE `users`
-  ADD CONSTRAINT `users_unit_id_foreign` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`) ON DELETE SET NULL;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

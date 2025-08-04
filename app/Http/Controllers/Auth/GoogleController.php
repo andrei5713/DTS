@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Http\Request;
+
 
 class GoogleController extends Controller
 {
@@ -14,23 +16,28 @@ class GoogleController extends Controller
         return Socialite::driver('google')->redirect();
     }
 
-    public function handleGoogleCallback()
+    public function handleGoogleCallback(Request $request)
     {
         try {
-            $googleUser = Socialite::driver('google')->user(); // no stateless here
+            $googleUser = Socialite::driver('google')->user();
 
-            $user = User::firstOrCreate(
-                ['email' => $googleUser->getEmail()],
+            $user = User::updateOrCreate(
+                [
+                    'email' => $googleUser->getEmail(),
+                    'provider' => 'google',
+                ],
                 [
                     'name' => $googleUser->getName(),
-                    'password' => bcrypt(uniqid()), // random fallback
+                    'password' => null,
                 ]
             );
 
             Auth::login($user);
 
-            return redirect('/home'); // or wherever you want
+            // ✅ Regenerate session to fix session-based issues (like logout)
+            $request->session()->regenerate();
 
+            return redirect('/home');
         } catch (\Exception $e) {
             return redirect('/login')->with('error', 'Google login failed: ' . $e->getMessage());
         }

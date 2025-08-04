@@ -26,7 +26,7 @@ const rows = ref(window.incomingDocuments);
 const searchQuery = ref('');
 
 const columns = [
-  { label: 'Tracking Code', key: 'trackingCode' },
+{ label: 'Tracking Code', key: 'trackingCode' },
   { label: 'Document Type', key: 'documentType' },
   { label: 'Subject', key: 'subject' },
   { label: 'Document Date', key: 'documentDate' },
