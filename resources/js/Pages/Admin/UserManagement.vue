@@ -44,9 +44,9 @@
                   class="text-sm border border-gray-300 rounded px-2 py-1"
                   :disabled="user.role === 'admin'"
                 >
-                  <option value="user">User</option>
-                  <option value="department">Department</option>
-                  <option value="admin">Admin</option>
+                  <option value="user">Record Officer</option>
+                  <option value="department">Director Officer</option>
+                  <option value="admin">Administrator</option>
                 </select>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

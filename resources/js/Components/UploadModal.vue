@@ -22,23 +22,45 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'upload'])
 
+// Store last month and sequence in localStorage to persist across sessions
+const lastMonth = ref(parseInt(localStorage.getItem('lastMonth')) || -1);
+const sequence = ref(parseInt(localStorage.getItem('sequence')) || 1);
+
 function generateTrackingNumber() {
-    const prefix = 'CPMSD';
     const now = new Date();
     const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    return `${prefix}-${yyyy}-${mm}-${rand}`;
+    const mm = now.getMonth() + 1; // 1-12 (January is 1, December is 12)
+    const currentMonth = now.getMonth();
+
+    // Reset sequence to 1 if the month has changed
+    if (currentMonth !== lastMonth.value) {
+        sequence.value = 1;
+        lastMonth.value = currentMonth;
+        localStorage.setItem('lastMonth', currentMonth);
+        localStorage.setItem('sequence', sequence.value);
+    }
+
+    // Map month to letter: A=January (1), B=February (2), ..., L=December (12)
+    const monthLetter = String.fromCharCode(64 + mm); // 64+1=65='A', 64+12=76='L'
+
+    // Use unit from props.units[0].full_name as department-division, split by '/' or '-'
+    const unit = props.units.length > 0 ? props.units[0].full_name : 'Unknown-Unknown';
+    let [department, division] = unit.includes('/')
+        ? unit.split('/').map(part => part.trim() || 'Unknown')
+        : unit.split('-').map(part => part.trim() || 'Unknown');
+
+    const seq = String(sequence.value).padStart(4, '0');
+    // Format with CPMSD and remove hyphen beside it: CPMSDdepartment-division-year-monthLetter-sequence
+    return `${department}-${division}-${yyyy}-${monthLetter}-${seq}`;
 }
 
 const formData = ref({
-    trackingCode: '',
+    trackingCode: generateTrackingNumber(),
     documentType: '',
     subject: '',
     entryDate: new Date().toISOString().slice(0, 10), // auto entry date
     uploadBy: '',
-    originatingOffice: '',
+    originatingOffice: props.units.length > 0 ? props.units[0].full_name : '',
     originType: 'internal',
     priority: '',
     remarks: '',
@@ -78,14 +100,13 @@ const priorities = [
 
 function closeModal() {
     emit('close')
-    // Reset only after closing
     formData.value = {
-        trackingCode: generateTrackingNumber(),
+        trackingCode: generateTrackingNumber(), // Regenerate without incrementing sequence
         documentType: '',
         subject: '',
         entryDate: new Date().toISOString().slice(0, 10), // auto entry date
         uploadBy: '',
-        originatingOffice: '',
+        originatingOffice: props.units.length > 0 ? props.units[0].full_name : '',
         originType: 'internal',
         priority: '',
         remarks: '',
@@ -96,12 +117,12 @@ function closeModal() {
 
 function resetForm() {
     formData.value = {
-        trackingCode: generateTrackingNumber(),
+        trackingCode: generateTrackingNumber(), // Regenerate without incrementing sequence
         documentType: '',
         subject: '',
         entryDate: new Date().toISOString().slice(0, 10), // auto entry date
         uploadBy: '',
-        originatingOffice: '',
+        originatingOffice: props.units.length > 0 ? props.units[0].full_name : '',
         originType: 'internal',
         priority: '',
         remarks: '',
@@ -173,6 +194,9 @@ async function handleSubmit() {
             }
         })
         emit('upload', uploadData)
+        // Increment sequence only after successful upload
+        sequence.value += 1;
+        localStorage.setItem('sequence', sequence.value);
         closeModal()
     } catch (error) {
         console.error('Upload error:', error)
@@ -184,7 +208,6 @@ async function handleSubmit() {
 
 watch(() => props.show, (newValue) => {
     if (newValue) {
-        // Only reset if not editing
         if (!props.formData) {
             resetForm()
         }
@@ -192,24 +215,23 @@ watch(() => props.show, (newValue) => {
 })
 
 watch(() => props.formData, (newVal) => {
-  if (newVal) {
-    formData.value = { ...newVal };
-  } else {
-    // Only reset if not editing
-    formData.value = {
-      trackingCode: generateTrackingNumber(),
-      documentType: '',
-      subject: '',
-      entryDate: new Date().toISOString().slice(0, 10), // auto entry date
-      uploadBy: '',
-      originatingOffice: '',
-      originType: 'internal',
-      priority: '',
-      remarks: '',
-      file: null,
-      routing: 'internal',
-    };
-  }
+    if (newVal) {
+        formData.value = { ...newVal };
+    } else {
+        formData.value = {
+            trackingCode: generateTrackingNumber(),
+            documentType: '',
+            subject: '',
+            entryDate: new Date().toISOString().slice(0, 10), // auto entry date
+            uploadBy: '',
+            originatingOffice: props.units.length > 0 ? props.units[0].full_name : '',
+            originType: 'internal',
+            priority: '',
+            remarks: '',
+            file: null,
+            routing: 'internal',
+        };
+    }
 }, { immediate: true });
 </script>
 
@@ -232,7 +254,7 @@ watch(() => props.formData, (newVal) => {
               <!-- Tracking Number -->
               <div>
                 <label for="trackingCode" class="block text-sm font-medium text-gray-700 mb-1">Tracking Number *</label>
-                <input id="trackingCode" v-model="formData.trackingCode" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.trackingCode }" />
+                <input id="trackingCode" v-model="formData.trackingCode" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.trackingCode }" readonly />
                 <p v-if="errors.trackingCode" class="mt-1 text-sm text-red-600">{{ errors.trackingCode }}</p>
               </div>
               <!-- Document Type -->
@@ -293,7 +315,7 @@ watch(() => props.formData, (newVal) => {
               <div class="relative">
                 <label for="originatingOffice" class="block text-sm font-medium text-gray-700 mb-1">Department/Division *</label>
                 <div class="relative">
-                  <select id="originatingOffice" v-model="formData.originatingOffice" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" :class="{ 'border-red-500': errors.originatingOffice }" @focus="isDepartmentOpen = true" @blur="isDepartmentOpen = false">
+                  <select id="originatingOffice" v-model="formData.originatingOffice" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" :class="{ 'border-red-500': errors.originatingOffice }" @focus="isDepartmentOpen = true" @blur="isDepartmentOpen = false" @change="formData.trackingCode = generateTrackingNumber()">
                     <option value="">Select Department/Division</option>
                     <option v-for="unit in units" :key="unit.id" :value="unit.full_name">{{ unit.full_name }}</option>
                   </select>
@@ -305,7 +327,7 @@ watch(() => props.formData, (newVal) => {
                 </div>
                 <p v-if="errors.originatingOffice" class="mt-1 text-sm text-red-600">{{ errors.originatingOffice }}</p>
               </div>
-              <!-- Priority Level -->
+              <!-- Priority Level (Fixed at line 337) -->
               <div class="relative">
                 <label for="priority" class="block text-sm font-medium text-gray-700 mb-1">Priority Level *</label>
                 <div class="relative">
@@ -363,4 +385,4 @@ select.appearance-none {
 .rotate-180 {
   transform: rotate(180deg);
 }
-</style> 
+</style>

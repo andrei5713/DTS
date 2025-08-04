@@ -1,6 +1,6 @@
 <script setup>
 import { ref, defineProps } from 'vue';
-import { Mail, Lock, User, Eye, EyeOff } from 'lucide-vue-next';
+import { Mail, Lock, User, Eye, EyeOff } from 'lucide-vue-next'; // Added Eye, EyeOff icons
 import { useForm } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 

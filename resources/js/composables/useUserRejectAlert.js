@@ -1,7 +1,7 @@
 import Swal from 'sweetalert2'
 
-export function useDeleteAlert() {
-  function confirmDelete() {
+export function useUserRejectAlert() {
+  function confirmReject(name) {
     const swalWithBootstrapButtons = Swal.mixin({
       customClass: {
         cancelButton: "btn btn-success mx-2 bg-green-500 text-white rounded-md px-4 py-2", // green
@@ -18,24 +18,25 @@ export function useDeleteAlert() {
     });
 
     return swalWithBootstrapButtons.fire({
-      title: "Are you sure?",
+      title: `Are you sure you want to reject ${name}?`,
       text: "You won't be able to revert this!",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Delete",
+      confirmButtonText: "Reject",
       cancelButtonText: "Cancel",
       reverseButtons: true
     }).then((result) => {
       if (result.isConfirmed) {
         swalWithBlueButton.fire({
-          title: "Deleted!",
-          text: "Deleted Successfully.",
+          title: "Rejected!",
+          text: `${name} has been rejected successfully.`,
           icon: "success"
         });
         return true;
       } else if (result.dismiss === Swal.DismissReason.cancel) {
         swalWithBlueButton.fire({
           title: "Cancelled",
+          text: `Rejection of ${name} was cancelled.`,
           icon: "error"
         });
         return false;
@@ -43,5 +44,5 @@ export function useDeleteAlert() {
       return false;
     });
   }
-  return { confirmDelete };
-} 
+  return { confirmReject };
+}

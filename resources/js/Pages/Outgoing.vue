@@ -42,14 +42,14 @@ const units = ref([]);
 const { confirmDelete } = useDeleteAlert();
 
 const columns = [
-  { label: 'Tracking code', key: 'trackingCode' },
-  { label: 'Document type', key: 'documentType' },
+  { label: 'Tracking Code', key: 'trackingCode' },
+  { label: 'Document Type', key: 'documentType' },
   { label: 'Subject', key: 'subject' },
-  { label: 'Document date', key: 'documentDate' },
+  { label: 'Document Date', key: 'documentDate' },
   { label: 'Date of entry', key: 'entryDate' },
-  { label: 'Upload by', key: 'sender' },
+  { label: 'Upload By', key: 'uploadBy' },
   { label: 'Department/Division', key: 'departmentDivision' },
-  { label: 'Origin type', key: 'originType' },
+  { label: 'Origin Type', key: 'originType' },
   { label: 'Priority', key: 'priority' },
   { label: 'Remarks', key: 'remarks' },
   { label: 'Routing', key: 'routing' },
