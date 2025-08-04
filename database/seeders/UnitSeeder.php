@@ -22,10 +22,10 @@ class UnitSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'name' => 'Capacity Planning Division',
+                'name' => 'Corporate Planning Division',
                 'code' => 'CPD',
                 'full_name' => 'CPMSD/CPD',
-                'description' => 'Capacity Planning Division - Handles capacity planning and development',
+                'description' => 'Corporate Planning Division - Handles corporate planning and development',
                 'is_active' => true,
             ],
             [

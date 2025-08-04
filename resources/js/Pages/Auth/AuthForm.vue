@@ -1,16 +1,18 @@
 <script setup>
 import { ref, defineProps } from 'vue';
-import { Mail, Lock, User } from 'lucide-vue-next';
+import { Mail, Lock, User, Eye, EyeOff } from 'lucide-vue-next';
 import { useForm } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 
 const currentMode = ref(true);
+const showPassword = ref(false); // State for password visibility
+const showPasswordConfirmation = ref(false); // State for password confirmation visibility
 const form = useForm({
   name: '',
   username: '',
   email: '',
   password: '',
-  password_confirmation: '', // Added for registration
+  password_confirmation: '',
 });
 
 const props = defineProps({
@@ -18,11 +20,11 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
-  errors: { // Inertia automatically passes validation errors here
+  errors: {
     type: Object,
     default: () => ({}),
   },
-  status: { // Inertia automatically passes flash messages here
+  status: {
     type: String,
     default: '',
   },
@@ -37,23 +39,25 @@ const toggleMode = () => {
   form.clearErrors();
 };
 
+const toggleShowPassword = () => {
+  showPassword.value = !showPassword.value;
+};
+
+const toggleShowPasswordConfirmation = () => {
+  showPasswordConfirmation.value = !showPasswordConfirmation.value;
+};
+
 const handleAuth = () => {
   if (currentMode.value) {
     form.post(route('login'), {
       onFinish: () => form.reset('password'),
-      onError: () => {
-        // Errors are automatically handled by useForm and passed to props.errors
-      },
+      onError: () => {},
     });
   } else {
     form.post(route('register'), {
-      onSuccess: () => {
-        // Laravel will redirect and flash a status message
-      },
+      onSuccess: () => {},
       onFinish: () => form.reset('password', 'password_confirmation'),
-      onError: () => {
-        // Errors are automatically handled by useForm and passed to props.errors
-      },
+      onError: () => {},
     });
   }
 };
@@ -137,13 +141,23 @@ const handleAuth = () => {
             <input
               id="password"
               name="password"
-              type="password"
+              :type="showPassword ? 'text' : 'password'"
               autocomplete="current-password"
               required
               v-model="form.password"
-              class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
+              class="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
               placeholder="••••••••"
             />
+            <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+              <button
+                type="button"
+                @click="toggleShowPassword"
+                class="focus:outline-none"
+              >
+                <Eye v-if="!showPassword" class="h-5 w-5 text-gray-400" />
+                <EyeOff v-else class="h-5 w-5 text-gray-400" />
+              </button>
+            </div>
           </div>
           <div v-if="form.errors.password" class="text-sm text-red-600 mt-1">{{ form.errors.password }}</div>
         </div>
@@ -157,12 +171,22 @@ const handleAuth = () => {
             <input
               id="password_confirmation"
               name="password_confirmation"
-              type="password"
+              :type="showPasswordConfirmation ? 'text' : 'password'"
               required
               v-model="form.password_confirmation"
-              class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
+              class="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
               placeholder="••••••••"
             />
+            <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+              <button
+                type="button"
+                @click="toggleShowPasswordConfirmation"
+                class="focus:outline-none"
+              >
+                <Eye v-if="!showPasswordConfirmation" class="h-5 w-5 text-gray-400" />
+                <EyeOff v-else class="h-5 w-5 text-gray-400" />
+              </button>
+            </div>
           </div>
           <div v-if="form.errors.password_confirmation" class="text-sm text-red-600 mt-1">{{ form.errors.password_confirmation }}</div>
         </div>

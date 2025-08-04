@@ -42,19 +42,19 @@ const units = ref([]);
 const { confirmDelete } = useDeleteAlert();
 
 const columns = [
-  { label: 'TRACKING CODE', key: 'trackingCode' },
-  { label: 'DOCUMENT TYPE', key: 'documentType' },
-  { label: 'SUBJECT', key: 'subject' },
-  { label: 'DOCUMENT DATE', key: 'documentDate' },
-  { label: 'DATE OF ENTRY', key: 'entryDate' },
-  { label: 'SENDER', key: 'sender' },
-  { label: 'DEPARTMENT/DIVISION', key: 'departmentDivision' },
-  { label: 'ORIGIN TYPE', key: 'originType' },
-  { label: 'PRIORITY', key: 'priority' },
-  { label: 'REMARKS', key: 'remarks' },
-  { label: 'ROUTING', key: 'routing' },
-  { label: 'FILE', key: 'file' },
-  { label: 'ACTIONS', key: 'ACTIONS' },
+  { label: 'Tracking code', key: 'trackingCode' },
+  { label: 'Document type', key: 'documentType' },
+  { label: 'Subject', key: 'subject' },
+  { label: 'Document date', key: 'documentDate' },
+  { label: 'Date of entry', key: 'entryDate' },
+  { label: 'Upload by', key: 'sender' },
+  { label: 'Department/Division', key: 'departmentDivision' },
+  { label: 'Origin type', key: 'originType' },
+  { label: 'Priority', key: 'priority' },
+  { label: 'Remarks', key: 'remarks' },
+  { label: 'Routing', key: 'routing' },
+  { label: 'File', key: 'file' },
+  { label: 'Actions', key: 'ACTIONS' },
 ];
 
 async function fetchUnits() {
