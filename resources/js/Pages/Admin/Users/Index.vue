@@ -176,7 +176,7 @@ watch(() => props.filters, (newFilters) => {
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {{ user.unit?.full_name || 'N/A' }}
+                                    {{ user.unit?.department_division || 'N/A' }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {{ new Date(user.created_at).toLocaleDateString() }}
@@ -255,7 +255,7 @@ watch(() => props.filters, (newFilters) => {
                             <select v-model="createForm.unit_id"
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">Select Unit</option>
-                                <option v-for="unit in units" :key="unit.id" :value="unit.id">{{ unit.full_name }}</option>
+                                <option v-for="unit in units" :key="unit.id" :value="unit.id">{{ unit.department_division }}</option>
                             </select>
                         </div>
                         <div class="flex justify-end space-x-3">
@@ -309,7 +309,7 @@ watch(() => props.filters, (newFilters) => {
                             <select v-model="editForm.unit_id"
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">Select Unit</option>
-                                <option v-for="unit in units" :key="unit.id" :value="unit.id">{{ unit.full_name }}</option>
+                                <option v-for="unit in units" :key="unit.id" :value="unit.id">{{ unit.department_division }}</option>
                             </select>
                         </div>
                         <div class="flex justify-end space-x-3">

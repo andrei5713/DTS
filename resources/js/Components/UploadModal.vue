@@ -43,8 +43,8 @@ function generateTrackingNumber() {
     // Map month to letter: A=January (1), B=February (2), ..., L=December (12)
     const monthLetter = String.fromCharCode(64 + mm); // 64+1=65='A', 64+12=76='L'
 
-    // Use unit from props.units[0].full_name as department-division, split by '/' or '-'
-    const unit = props.units.length > 0 ? props.units[0].full_name : 'Unknown-Unknown';
+    // Use unit from props.units[0].department_division as department-division, split by '/' or '-'
+    const unit = props.units.length > 0 ? props.units[0].department_division : 'Unknown-Unknown';
     let [department, division] = unit.includes('/')
         ? unit.split('/').map(part => part.trim() || 'Unknown')
         : unit.split('-').map(part => part.trim() || 'Unknown');
@@ -60,7 +60,7 @@ const formData = ref({
     subject: '',
     entryDate: new Date().toISOString().slice(0, 10), // auto entry date
     uploadBy: '',
-    originatingOffice: props.units.length > 0 ? props.units[0].full_name : '',
+    originatingOffice: props.units.length > 0 ? props.units[0].department_division : '',
     originType: 'internal',
     priority: '',
     remarks: '',
@@ -106,7 +106,7 @@ function closeModal() {
         subject: '',
         entryDate: new Date().toISOString().slice(0, 10), // auto entry date
         uploadBy: '',
-        originatingOffice: props.units.length > 0 ? props.units[0].full_name : '',
+        originatingOffice: props.units.length > 0 ? props.units[0].department_division : '',
         originType: 'internal',
         priority: '',
         remarks: '',
@@ -122,7 +122,7 @@ function resetForm() {
         subject: '',
         entryDate: new Date().toISOString().slice(0, 10), // auto entry date
         uploadBy: '',
-        originatingOffice: props.units.length > 0 ? props.units[0].full_name : '',
+        originatingOffice: props.units.length > 0 ? props.units[0].department_division : '',
         originType: 'internal',
         priority: '',
         remarks: '',
@@ -224,7 +224,7 @@ watch(() => props.formData, (newVal) => {
             subject: '',
             entryDate: new Date().toISOString().slice(0, 10), // auto entry date
             uploadBy: '',
-            originatingOffice: props.units.length > 0 ? props.units[0].full_name : '',
+            originatingOffice: props.units.length > 0 ? props.units[0].department_division : '',
             originType: 'internal',
             priority: '',
             remarks: '',
@@ -317,7 +317,7 @@ watch(() => props.formData, (newVal) => {
                 <div class="relative">
                   <select id="originatingOffice" v-model="formData.originatingOffice" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" :class="{ 'border-red-500': errors.originatingOffice }" @focus="isDepartmentOpen = true" @blur="isDepartmentOpen = false" @change="formData.trackingCode = generateTrackingNumber()">
                     <option value="">Select Department/Division</option>
-                    <option v-for="unit in units" :key="unit.id" :value="unit.full_name">{{ unit.full_name }}</option>
+                    <option v-for="unit in units" :key="unit.id" :value="unit.department_division">{{ unit.department_division }}</option>
                   </select>
                   <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
                     <svg class="w-5 h-5 text-gray-700 font-bold transition-transform duration-200" :class="{ 'rotate-180': isDepartmentOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">

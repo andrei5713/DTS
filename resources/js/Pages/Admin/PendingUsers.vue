@@ -45,7 +45,7 @@
                   class="text-sm border border-gray-300 rounded px-2 py-1"
                 >
                   <option v-for="unit in units" :key="unit.id" :value="unit.id">
-                    {{ unit.full_name }}
+                    {{ unit.department_division }}
                   </option>
                 </select>
               </td>
@@ -94,7 +94,7 @@
         >
           <option value="">Select Unit for All</option>
           <option v-for="unit in units" :key="unit.id" :value="unit.id">
-            {{ unit.full_name }}
+            {{ unit.department_division }}
           </option>
         </select>
         <button

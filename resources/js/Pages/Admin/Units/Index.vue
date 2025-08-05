@@ -15,7 +15,7 @@ const selectedUnit = ref(null)
 const createForm = useForm({
     name: '',
     code: '',
-    full_name: '',
+    department_division: '',
     description: '',
     is_active: true,
 })
@@ -23,7 +23,7 @@ const createForm = useForm({
 const editForm = useForm({
     name: '',
     code: '',
-    full_name: '',
+    department_division: '',
     description: '',
     is_active: true,
 })
@@ -43,7 +43,7 @@ function openEditModal(unit) {
     selectedUnit.value = unit
     editForm.name = unit.name
     editForm.code = unit.code
-    editForm.full_name = unit.full_name
+    editForm.department_division = unit.department_division
     editForm.description = unit.description
     editForm.is_active = unit.is_active
     showEditModal.value = true

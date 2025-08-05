@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('code')->unique(); // e.g., 'DO', 'CPD', 'ICTSD'
-            $table->string('full_name'); // e.g., 'CPMSD/DO', 'CPMSD/CPD'
+            $table->string('department_division'); // e.g., 'CPMSD/DO', 'CPMSD/CPD'
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();

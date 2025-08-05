@@ -93,7 +93,7 @@ const roleColors = {
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {{ user.unit?.full_name || 'N/A' }}
+                                    {{ user.unit?.department_division || 'N/A' }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {{ new Date(user.created_at).toLocaleDateString() }}

@@ -18,7 +18,7 @@ class UnitManagementController extends Controller
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('code', 'like', '%' . $request->search . '%')
-                  ->orWhere('full_name', 'like', '%' . $request->search . '%');
+                  ->orWhere('department_division', 'like', '%' . $request->search . '%');
             });
         }
 
@@ -40,7 +40,7 @@ class UnitManagementController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:units',
-            'full_name' => 'required|string|max:255',
+            'department_division' => 'required|string|max:255',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
@@ -48,7 +48,7 @@ class UnitManagementController extends Controller
         Unit::create([
             'name' => $request->name,
             'code' => $request->code,
-            'full_name' => $request->full_name,
+            'department_division' => $request->department_division,
             'description' => $request->description,
             'is_active' => $request->is_active ?? true,
         ]);
@@ -61,7 +61,7 @@ class UnitManagementController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:units,code,' . $unit->id,
-            'full_name' => 'required|string|max:255',
+            'department_division' => 'required|string|max:255',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
@@ -69,7 +69,7 @@ class UnitManagementController extends Controller
         $unit->update([
             'name' => $request->name,
             'code' => $request->code,
-            'full_name' => $request->full_name,
+            'department_division' => $request->department_division,
             'description' => $request->description,
             'is_active' => $request->is_active,
         ]);

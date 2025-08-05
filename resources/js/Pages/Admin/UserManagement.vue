@@ -50,7 +50,7 @@
                 </select>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ user.unit?.full_name || 'N/A' }}
+                {{ user.unit?.department_division || 'N/A' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="statusColors[user.role]">
