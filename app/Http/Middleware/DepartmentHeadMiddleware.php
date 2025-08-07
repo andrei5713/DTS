@@ -16,11 +16,11 @@ class DepartmentHeadMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check() || !Auth::user()->isDepartmentHead()) {
+        if (!Auth::check() || !Auth::user()->isEncoder()) {
             if ($request->expectsJson()) {
-                return response()->json(['message' => 'Unauthorized. Department Head access required.'], 403);
+                return response()->json(['message' => 'Unauthorized. Encoder access required.'], 403);
             }
-            return redirect()->route('login')->with('error', 'Department Head access required.');
+            return redirect()->route('login')->with('error', 'Encoder access required.');
         }
 
         return $next($request);

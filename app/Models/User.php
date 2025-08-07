@@ -43,13 +43,13 @@ class User extends Authenticatable
         return $this->role === 'department';
     }
 
-    public function isDepartmentHead()
+    public function isEncoder()
     {
-        return $this->role === 'department_head';
+        return $this->role === 'encoder';
     }
 
-    public function isUser()
+    public function isViewer()
     {
-        return $this->role === 'user';
+        return $this->role === 'viewer';
     }
 }

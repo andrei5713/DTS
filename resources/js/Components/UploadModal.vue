@@ -1,5 +1,6 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 
 const props = defineProps({
     show: {
@@ -17,6 +18,10 @@ const props = defineProps({
     units: {
         type: Array,
         default: () => []
+    },
+    currentUser: {
+        type: Object,
+        default: null
     }
 })
 
@@ -38,7 +43,9 @@ const formData = ref({
     subject: '',
     entryDate: new Date().toISOString().slice(0, 10), // auto entry date
     uploadBy: '',
+    uploadTo: '',
     originatingOffice: '',
+    forwardToDepartment: '',
     originType: 'internal',
     priority: '',
     remarks: '',
@@ -54,6 +61,13 @@ const isOriginTypeOpen = ref(false)
 const isPriorityOpen = ref(false)
 const isRoutingOpen = ref(false)
 const isDepartmentOpen = ref(false)
+const isForwardToDepartmentOpen = ref(false)
+
+// Autocomplete functionality
+const users = ref([])
+const filteredUsers = ref([])
+const showUserSuggestions = ref(false)
+const selectedUserIndex = ref(-1)
 
 const statusOptions = [
     { label: 'Simple', days: 3, color: 'blue', value: 'simple' },
@@ -94,14 +108,77 @@ function closeModal() {
     }
 }
 
+async function fetchUsers(query = '') {
+    try {
+        const response = await fetch(`/api/users?q=${encodeURIComponent(query)}`)
+        const data = await response.json()
+        users.value = data
+        filteredUsers.value = data
+    } catch (error) {
+        console.error('Error fetching users:', error)
+    }
+}
+
+function searchUsers(query) {
+    if (!query.trim()) {
+        filteredUsers.value = []
+        showUserSuggestions.value = false
+        return
+    }
+    
+    filteredUsers.value = users.value.filter(user => 
+        user.name.toLowerCase().includes(query.toLowerCase()) ||
+        user.username.toLowerCase().includes(query.toLowerCase()) ||
+        user.email.toLowerCase().includes(query.toLowerCase())
+    )
+    showUserSuggestions.value = filteredUsers.value.length > 0
+    selectedUserIndex.value = -1
+}
+
+function selectUser(user) {
+    formData.value.uploadTo = user.name
+    showUserSuggestions.value = false
+    selectedUserIndex.value = -1
+}
+
+function handleKeydown(event) {
+    if (!showUserSuggestions.value) return
+    
+    if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        selectedUserIndex.value = Math.min(selectedUserIndex.value + 1, filteredUsers.value.length - 1)
+    } else if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        selectedUserIndex.value = Math.max(selectedUserIndex.value - 1, -1)
+    } else if (event.key === 'Enter') {
+        event.preventDefault()
+        if (selectedUserIndex.value >= 0 && filteredUsers.value[selectedUserIndex.value]) {
+            selectUser(filteredUsers.value[selectedUserIndex.value])
+        }
+    } else if (event.key === 'Escape') {
+        showUserSuggestions.value = false
+        selectedUserIndex.value = -1
+    }
+}
+
+function handleBlur() {
+    setTimeout(() => {
+        showUserSuggestions.value = false
+        selectedUserIndex.value = -1
+    }, 200)
+}
+
 function resetForm() {
+    const user = props.currentUser || currentUserFromPage.value
     formData.value = {
         trackingCode: generateTrackingNumber(),
         documentType: '',
         subject: '',
         entryDate: new Date().toISOString().slice(0, 10), // auto entry date
-        uploadBy: '',
+        uploadBy: user ? user.name : '',
+        uploadTo: '',
         originatingOffice: '',
+        forwardToDepartment: '',
         originType: 'internal',
         priority: '',
         remarks: '',
@@ -146,6 +223,9 @@ function validateForm() {
     if (!formData.value.uploadBy.trim()) {
         errors.value.uploadBy = 'Upload by is required'
     }
+    if (!formData.value.uploadTo.trim()) {
+        errors.value.uploadTo = 'Upload to is required'
+    }
     if (!formData.value.originatingOffice.trim()) {
         errors.value.originatingOffice = 'Originating office is required'
     }
@@ -188,6 +268,8 @@ watch(() => props.show, (newValue) => {
         if (!props.formData) {
             resetForm()
         }
+        // Fetch users for autocomplete
+        fetchUsers()
     }
 })
 
@@ -196,13 +278,16 @@ watch(() => props.formData, (newVal) => {
     formData.value = { ...newVal };
   } else {
     // Only reset if not editing
+    const user = props.currentUser || currentUserFromPage.value
     formData.value = {
       trackingCode: generateTrackingNumber(),
       documentType: '',
       subject: '',
       entryDate: new Date().toISOString().slice(0, 10), // auto entry date
-      uploadBy: '',
+      uploadBy: user ? user.name : '',
+      uploadTo: '',
       originatingOffice: '',
+      forwardToDepartment: '',
       originType: 'internal',
       priority: '',
       remarks: '',
@@ -211,6 +296,24 @@ watch(() => props.formData, (newVal) => {
     };
   }
 }, { immediate: true });
+
+// Get current user directly from page props
+const page = usePage()
+const currentUserFromPage = computed(() => page.props.auth?.user)
+
+// Watch for current user changes
+watch(() => props.currentUser, (newUser) => {
+  if (newUser && !props.formData) {
+    formData.value.uploadBy = newUser.name
+  }
+}, { immediate: true })
+
+// Also watch the page user
+watch(() => currentUserFromPage.value, (newUser) => {
+  if (newUser && !props.formData && !formData.value.uploadBy) {
+    formData.value.uploadBy = newUser.name
+  }
+}, { immediate: true })
 </script>
 
 <template>
@@ -266,8 +369,38 @@ watch(() => props.formData, (newVal) => {
               <!-- Upload By -->
               <div>
                 <label for="uploadBy" class="block text-sm font-medium text-gray-700 mb-1">Upload By *</label>
-                <input id="uploadBy" v-model="formData.uploadBy" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.uploadBy }" />
+                <input id="uploadBy" v-model="formData.uploadBy" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.uploadBy }" readonly />
                 <p v-if="errors.uploadBy" class="mt-1 text-sm text-red-600">{{ errors.uploadBy }}</p>
+              </div>
+              <!-- Upload To -->
+              <div class="relative">
+                <label for="uploadTo" class="block text-sm font-medium text-gray-700 mb-1">Upload To *</label>
+                <input 
+                  id="uploadTo" 
+                  v-model="formData.uploadTo" 
+                  type="text" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  :class="{ 'border-red-500': errors.uploadTo }"
+                  @input="searchUsers($event.target.value)"
+                  @keydown="handleKeydown"
+                  @focus="showUserSuggestions = true"
+                  @blur="handleBlur"
+                  placeholder="Start typing to search users..."
+                />
+                <!-- User suggestions dropdown -->
+                <div v-if="showUserSuggestions && filteredUsers.length > 0" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  <div 
+                    v-for="(user, index) in filteredUsers" 
+                    :key="user.id"
+                    @click="selectUser(user)"
+                    class="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                    :class="{ 'bg-blue-100': index === selectedUserIndex }"
+                  >
+                    <div class="font-medium">{{ user.name }}</div>
+                    <div class="text-sm text-gray-600">{{ user.username }} • {{ user.email }}</div>
+                  </div>
+                </div>
+                <p v-if="errors.uploadTo" class="mt-1 text-sm text-red-600">{{ errors.uploadTo }}</p>
               </div>
               <!-- Origin Type -->
               <div>
@@ -304,6 +437,21 @@ watch(() => props.formData, (newVal) => {
                   </div>
                 </div>
                 <p v-if="errors.originatingOffice" class="mt-1 text-sm text-red-600">{{ errors.originatingOffice }}</p>
+              </div>
+              <!-- Forward to Department -->
+              <div class="relative">
+                <label for="forwardToDepartment" class="block text-sm font-medium text-gray-700 mb-1">Forward to Department/Division</label>
+                <div class="relative">
+                  <select id="forwardToDepartment" v-model="formData.forwardToDepartment" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" @focus="isForwardToDepartmentOpen = true" @blur="isForwardToDepartmentOpen = false">
+                    <option value="">Select Department/Division to Forward</option>
+                    <option v-for="unit in units" :key="unit.id" :value="unit.full_name">{{ unit.full_name }}</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                    <svg class="w-5 h-5 text-gray-700 font-bold transition-transform duration-200" :class="{ 'rotate-180': isForwardToDepartmentOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                </div>
               </div>
               <!-- Priority Level -->
               <div class="relative">

@@ -78,10 +78,10 @@ const roleDisplayText = computed(() => {
   switch (userRole) {
     case 'admin':
       return 'Admin'
-    case 'department_head':
-      return 'Department Head'
-    case 'user':
-      return 'User'
+    case 'encoder':
+      return 'Encoder'
+    case 'viewer':
+      return 'Viewer'
     default:
       return 'Guest'
   }
@@ -91,9 +91,9 @@ const roleIcon = computed(() => {
   switch (userRole) {
     case 'admin':
       return Shield
-    case 'department_head':
+    case 'encoder':
       return Users
-    case 'user':
+    case 'viewer':
       return User
     default:
       return User
@@ -104,9 +104,9 @@ const roleDisplayClass = computed(() => {
   switch (userRole) {
     case 'admin':
       return 'bg-red-100 text-red-800'
-    case 'department_head':
+    case 'encoder':
       return 'bg-blue-100 text-blue-800'
-    case 'user':
+    case 'viewer':
       return 'bg-green-100 text-green-800'
     default:
       return 'bg-gray-100 text-gray-800'

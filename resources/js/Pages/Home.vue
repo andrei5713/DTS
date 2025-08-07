@@ -35,7 +35,7 @@
         </Tabs>
       </div>
     </div>
-    <div v-else-if="userRole === 'department_head'">
+            <div v-else-if="userRole === 'encoder'">
       <div class="mt-6">
         <Tabs v-model="activeTab" :tabs="departmentHeadTabs">
           <template #default="{ activeTab }">
@@ -103,8 +103,8 @@ const userTabs = [
 
 function getTabKey(role) {
   if (role === 'admin') return 'activeTab_admin'
-  if (role === 'department_head') return 'activeTab_department_head'
-  if (role === 'user') return 'activeTab_user'
+          if (role === 'encoder') return 'activeTab_encoder'
+      if (role === 'viewer') return 'activeTab_viewer'
   return 'activeTab_guest'
 }
 
@@ -118,8 +118,8 @@ onMounted(() => {
   } else {
     // Set default tab for each role
     if (userRole.value === 'admin') activeTab.value = 'dashboard'
-    else if (userRole.value === 'department_head') activeTab.value = 'outgoing'
-    else if (userRole.value === 'user') activeTab.value = 'incoming'
+            else if (userRole.value === 'encoder') activeTab.value = 'outgoing'
+            else if (userRole.value === 'viewer') activeTab.value = 'incoming'
     else activeTab.value = 'incoming'
   }
 })

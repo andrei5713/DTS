@@ -9,6 +9,8 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\UnitManagementController;
 use App\Http\Controllers\UnitController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DepartmentHeadController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -44,8 +46,8 @@ Route::middleware('auth')->group(function () {
             $stats = [
                 'total_users' => \App\Models\User::count(),
                 'admin_users' => \App\Models\User::where('role', 'admin')->count(),
-                'department_users' => \App\Models\User::where('role', 'department_head')->count(),
-                'regular_users' => \App\Models\User::where('role', 'user')->count(),
+                'encoder_users' => \App\Models\User::where('role', 'encoder')->count(),
+                'viewer_users' => \App\Models\User::where('role', 'viewer')->count(),
                 'pending_users' => \App\Models\User::where('role', 'pending')->count(),
                 'total_units' => \App\Models\Unit::count(),
                 'active_units' => \App\Models\Unit::where('is_active', true)->count(),
@@ -68,8 +70,8 @@ Route::middleware('auth')->group(function () {
                 'pendingUsers' => $pending_users,
                 'units' => $units,
             ]);
-        } elseif ($user->role === 'department_head') {
-            // Department heads will see their dashboard in the Home page
+        } elseif ($user->role === 'encoder') {
+            // Encoders will see their dashboard in the Home page
             return Inertia::render('Home');
         }
         
@@ -80,6 +82,17 @@ Route::middleware('auth')->group(function () {
 
     // Units API
     Route::get('/api/units', [UnitController::class, 'index'])->name('api.units');
+    
+    // Users API
+    Route::get('/api/users', [UserController::class, 'index'])->name('api.users');
+    
+    // Document routes
+    Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
+    Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
+    Route::post('/documents/{document}/receive', [DocumentController::class, 'receive'])->name('documents.receive');
+    Route::post('/documents/{document}/forward', [DocumentController::class, 'forward'])->name('documents.forward');
+    Route::post('/documents/{document}/reject', [DocumentController::class, 'reject'])->name('documents.reject');
+    Route::get('/api/can-upload', [DocumentController::class, 'canUserUpload'])->name('api.can-upload');
 
     // Admin Routes
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
@@ -103,8 +116,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/units/{unit}', [UnitManagementController::class, 'destroy'])->name('units.destroy');
     });
 
-    // Department Head Routes (handled in Home page now)
-    // Route::middleware('department.head')->prefix('department-head')->name('department.head.')->group(function () {
+    // Encoder Routes (handled in Home page now)
+    // Route::middleware('encoder')->prefix('encoder')->name('encoder.')->group(function () {
     //     Route::get('/dashboard', [DepartmentHeadController::class, 'dashboard'])->name('dashboard');
     // });
 });
