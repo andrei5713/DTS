@@ -34,6 +34,7 @@
                   v-model="user.assignedRole"
                   class="text-sm border border-gray-300 rounded px-2 py-1"
                 >
+                  <option value="">Select Role</option>
                   <option value="user">User</option>
                   <option value="department_head">Department Head</option>
                   <option value="admin">Admin</option>
@@ -44,6 +45,7 @@
                   v-model="user.assignedUnit"
                   class="text-sm border border-gray-300 rounded px-2 py-1"
                 >
+                  <option value="">Select Unit</option>
                   <option v-for="unit in units" :key="unit.id" :value="unit.id">
                     {{ unit.full_name }}
                   </option>
@@ -116,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 const props = defineProps({
@@ -130,9 +132,22 @@ const props = defineProps({
   },
 })
 
-const pendingUsers = ref(props.pendingUsers)
+const pendingUsers = ref(props.pendingUsers.map(user => ({
+  ...user,
+  assignedRole: '',
+  assignedUnit: ''
+})))
 const bulkRole = ref('')
 const bulkUnit = ref('')
+
+// Watch for changes in props and update the local state
+watch(() => props.pendingUsers, (newPendingUsers) => {
+  pendingUsers.value = newPendingUsers.map(user => ({
+    ...user,
+    assignedRole: '',
+    assignedUnit: ''
+  }))
+}, { deep: true })
 
 const approveUser = (user) => {
   if (!user.assignedRole || !user.assignedUnit) {

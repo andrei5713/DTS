@@ -43,6 +43,11 @@ class User extends Authenticatable
         return $this->role === 'department';
     }
 
+    public function isDepartmentHead()
+    {
+        return $this->role === 'department_head';
+    }
+
     public function isUser()
     {
         return $this->role === 'user';

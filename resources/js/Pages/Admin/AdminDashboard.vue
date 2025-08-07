@@ -70,7 +70,7 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.email }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="roleColors[user.role]">
-                  {{ user.role }}
+                  {{ user.role === 'department_head' ? 'Department Head' : user.role === 'pending' ? 'Pending' : user.role }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -105,7 +105,7 @@ const props = defineProps({
 
 const roleColors = {
   admin: 'bg-red-100 text-red-800',
-  department: 'bg-blue-100 text-blue-800',
+  department_head: 'bg-blue-100 text-blue-800',
   user: 'bg-green-100 text-green-800',
   pending: 'bg-yellow-100 text-yellow-800',
 }

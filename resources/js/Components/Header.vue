@@ -9,6 +9,12 @@
                 </div>
             </div>
             <div class="flex items-center space-x-4">
+                <!-- Role Display -->
+                <div class="flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium" :class="roleDisplayClass">
+                    <component :is="roleIcon" class="w-4 h-4" />
+                    <span>{{ roleDisplayText }}</span>
+                </div>
+
                 <button class="relative">
                     <Bell class="w-6 h-6" />
                 </button>
@@ -37,7 +43,7 @@
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { Link, usePage, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { Bell, ChevronDown } from 'lucide-vue-next'
+import { Bell, ChevronDown, Shield, Users, User } from 'lucide-vue-next'
 
 const isShowLogin = ref(false)
 const dropdownRef = ref(null)
@@ -66,5 +72,46 @@ onBeforeUnmount(() => {
 
 const page = usePage()
 const username = page.props.auth?.user?.username || 'Guest'
-const isAdmin = computed(() => page.props.auth?.user?.role === 'admin')
+const userRole = page.props.auth?.user?.role
+
+const roleDisplayText = computed(() => {
+  switch (userRole) {
+    case 'admin':
+      return 'Admin'
+    case 'department_head':
+      return 'Department Head'
+    case 'user':
+      return 'User'
+    default:
+      return 'Guest'
+  }
+})
+
+const roleIcon = computed(() => {
+  switch (userRole) {
+    case 'admin':
+      return Shield
+    case 'department_head':
+      return Users
+    case 'user':
+      return User
+    default:
+      return User
+  }
+})
+
+const roleDisplayClass = computed(() => {
+  switch (userRole) {
+    case 'admin':
+      return 'bg-red-100 text-red-800'
+    case 'department_head':
+      return 'bg-blue-100 text-blue-800'
+    case 'user':
+      return 'bg-green-100 text-green-800'
+    default:
+      return 'bg-gray-100 text-gray-800'
+  }
+})
+
+const isAdmin = computed(() => userRole === 'admin')
 </script>

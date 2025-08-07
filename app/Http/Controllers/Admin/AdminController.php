@@ -15,7 +15,7 @@ class AdminController extends Controller
         $stats = [
             'total_users' => User::count(),
             'admin_users' => User::where('role', 'admin')->count(),
-            'department_users' => User::where('role', 'department')->count(),
+            'department_users' => User::where('role', 'department_head')->count(),
             'regular_users' => User::where('role', 'user')->count(),
             'pending_users' => User::where('role', 'pending')->count(),
             'total_units' => Unit::count(),

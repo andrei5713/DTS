@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\UnitManagementController;
 use App\Http\Controllers\UnitController;
+use App\Http\Controllers\DepartmentHeadController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 
@@ -43,7 +44,7 @@ Route::middleware('auth')->group(function () {
             $stats = [
                 'total_users' => \App\Models\User::count(),
                 'admin_users' => \App\Models\User::where('role', 'admin')->count(),
-                'department_users' => \App\Models\User::where('role', 'department')->count(),
+                'department_users' => \App\Models\User::where('role', 'department_head')->count(),
                 'regular_users' => \App\Models\User::where('role', 'user')->count(),
                 'pending_users' => \App\Models\User::where('role', 'pending')->count(),
                 'total_units' => \App\Models\Unit::count(),
@@ -67,6 +68,9 @@ Route::middleware('auth')->group(function () {
                 'pendingUsers' => $pending_users,
                 'units' => $units,
             ]);
+        } elseif ($user->role === 'department_head') {
+            // Department heads will see their dashboard in the Home page
+            return Inertia::render('Home');
         }
         
         return Inertia::render('Home');
@@ -79,9 +83,9 @@ Route::middleware('auth')->group(function () {
 
     // Admin Routes
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
-        // Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-        // Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
-        // Route::get('/pending-users', [UserManagementController::class, 'pendingUsers'])->name('pending-users.index');
+        Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+        Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::get('/pending-users', [UserManagementController::class, 'pendingUsers'])->name('pending-users.index');
         
         // User Management
         Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
@@ -98,6 +102,11 @@ Route::middleware('auth')->group(function () {
         Route::put('/units/{unit}', [UnitManagementController::class, 'update'])->name('units.update');
         Route::delete('/units/{unit}', [UnitManagementController::class, 'destroy'])->name('units.destroy');
     });
+
+    // Department Head Routes (handled in Home page now)
+    // Route::middleware('department.head')->prefix('department-head')->name('department.head.')->group(function () {
+    //     Route::get('/dashboard', [DepartmentHeadController::class, 'dashboard'])->name('dashboard');
+    // });
 });
 
 // Optional: Google OAuth (if you want to keep it)
