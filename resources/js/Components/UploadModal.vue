@@ -137,9 +137,9 @@ function searchUsers(query) {
 
 function selectUser(user) {
     formData.value.uploadTo = user.name
-    // Auto-fill the department/division based on the selected user's unit
+    // Auto-fill the forward to department/division based on the selected user's unit
     if (user.unit_name && user.unit_name !== 'N/A') {
-        formData.value.originatingOffice = user.unit_name
+        formData.value.forwardToDepartment = user.unit_name
     }
     showUserSuggestions.value = false
     selectedUserIndex.value = -1
@@ -181,7 +181,7 @@ function resetForm() {
         entryDate: new Date().toISOString().slice(0, 10), // auto entry date
         uploadBy: user ? user.name : '',
         uploadTo: '',
-        originatingOffice: '',
+        originatingOffice: user && user.unit ? user.unit.full_name : '',
         forwardToDepartment: '',
         originType: 'internal',
         priority: '',
@@ -290,7 +290,7 @@ watch(() => props.formData, (newVal) => {
       entryDate: new Date().toISOString().slice(0, 10), // auto entry date
       uploadBy: user ? user.name : '',
       uploadTo: '',
-      originatingOffice: '',
+      originatingOffice: user && user.unit ? user.unit.full_name : '',
       forwardToDepartment: '',
       originType: 'internal',
       priority: '',
@@ -309,6 +309,9 @@ const currentUserFromPage = computed(() => page.props.auth?.user)
 watch(() => props.currentUser, (newUser) => {
   if (newUser && !props.formData) {
     formData.value.uploadBy = newUser.name
+    if (newUser.unit && newUser.unit.full_name) {
+      formData.value.originatingOffice = newUser.unit.full_name
+    }
   }
 }, { immediate: true })
 
@@ -316,6 +319,9 @@ watch(() => props.currentUser, (newUser) => {
 watch(() => currentUserFromPage.value, (newUser) => {
   if (newUser && !props.formData && !formData.value.uploadBy) {
     formData.value.uploadBy = newUser.name
+    if (newUser.unit && newUser.unit.full_name) {
+      formData.value.originatingOffice = newUser.unit.full_name
+    }
   }
 }, { immediate: true })
 </script>

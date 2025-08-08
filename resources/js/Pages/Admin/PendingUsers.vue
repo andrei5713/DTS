@@ -32,7 +32,7 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <select
                   v-model="user.assignedRole"
-                  class="text-sm border border-gray-300 rounded px-2 py-1 w-28"
+                  class="text-sm border border-gray-300 rounded px-2 py-1 w-32"
                 >
                   <option value="">Select Role</option>
                   <option value="viewer">Viewer</option>
@@ -43,7 +43,7 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <select
                   v-model="user.assignedUnit"
-                  class="text-sm border border-gray-300 rounded px-2 py-1 w-40"
+                  class="text-sm border border-gray-300 rounded px-2 py-1 w-48"
                 >
                   <option value="">Select Unit</option>
                   <option v-for="unit in units" :key="unit.id" :value="unit.id">

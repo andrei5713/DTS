@@ -41,7 +41,7 @@
                 <select
                   v-model="user.role"
                   @change="updateUserRole(user)"
-                  class="text-sm border border-gray-300 rounded px-2 py-1 w-24"
+                  class="text-sm border border-gray-300 rounded px-2 py-1 w-28"
                   :disabled="user.role === 'admin'"
                 >
                   <option value="viewer">Viewer</option>
