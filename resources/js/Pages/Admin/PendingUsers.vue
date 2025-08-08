@@ -32,7 +32,7 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <select
                   v-model="user.assignedRole"
-                  class="text-sm border border-gray-300 rounded px-2 py-1"
+                  class="text-sm border border-gray-300 rounded px-2 py-1 w-28"
                 >
                   <option value="">Select Role</option>
                   <option value="viewer">Viewer</option>
@@ -43,7 +43,7 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <select
                   v-model="user.assignedUnit"
-                  class="text-sm border border-gray-300 rounded px-2 py-1"
+                  class="text-sm border border-gray-300 rounded px-2 py-1 w-40"
                 >
                   <option value="">Select Unit</option>
                   <option v-for="unit in units" :key="unit.id" :value="unit.id">
@@ -83,7 +83,7 @@
       <div class="flex space-x-4">
         <select
           v-model="bulkRole"
-          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
         >
           <option value="">Select Role for All</option>
           <option value="viewer">Viewer</option>
@@ -92,7 +92,7 @@
         </select>
         <select
           v-model="bulkUnit"
-          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
         >
           <option value="">Select Unit for All</option>
           <option v-for="unit in units" :key="unit.id" :value="unit.id">

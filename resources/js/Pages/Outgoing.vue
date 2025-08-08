@@ -104,10 +104,25 @@ async function handleUpload(uploadData) {
   try {
     const formData = new FormData();
     
-    // Add all form data
+    // Map camelCase field names to snake_case for backend
+    const fieldMapping = {
+      'trackingCode': 'tracking_code',
+      'documentType': 'document_type',
+      'entryDate': 'entry_date',
+      'uploadBy': 'upload_by',
+      'uploadTo': 'upload_to',
+      'originatingOffice': 'originating_office',
+      'forwardToDepartment': 'forward_to_department',
+      'originType': 'origin_type',
+      'routing': 'routing'
+    };
+    
+    // Add all form data with proper field name mapping
     for (const [key, value] of uploadData.entries()) {
       if (key === 'file') {
         formData.append('file', value);
+      } else if (fieldMapping[key]) {
+        formData.append(fieldMapping[key], value);
       } else {
         formData.append(key, value);
       }
@@ -118,13 +133,21 @@ async function handleUpload(uploadData) {
       formData.append('document_date', new Date().toISOString().slice(0, 10));
     }
     
+    // Debug: Log the form data being sent
+    console.log('Form data being sent:');
+    for (const [key, value] of formData.entries()) {
+      console.log(`${key}: ${value}`);
+    }
+    
     const response = await fetch(route('documents.store'), {
       method: 'POST',
       body: formData,
       headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        'X-CSRF-TOKEN': page.props.csrf_token || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
       }
     });
+    
+    console.log('Response status:', response.status);
     
     if (response.ok) {
       const result = await response.json();
@@ -135,8 +158,20 @@ async function handleUpload(uploadData) {
         alert('Error uploading document: ' + (result.message || 'Unknown error'));
       }
     } else {
-      const errorData = await response.json();
-      alert('Error uploading document: ' + (errorData.message || 'Unknown error'));
+      let errorMessage = 'Unknown error occurred';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.errors ? Object.values(errorData.errors).flat().join(', ') : 'Unknown error';
+      } catch (e) {
+        if (response.status === 419) {
+          errorMessage = 'Session expired. Please refresh the page and try again.';
+        } else if (response.status === 422) {
+          errorMessage = 'Validation error. Please check your form data.';
+        } else {
+          errorMessage = `Server error (${response.status}). Please try again.`;
+        }
+      }
+      alert('Error uploading document: ' + errorMessage);
     }
   } catch (error) {
     console.error('Upload error:', error);

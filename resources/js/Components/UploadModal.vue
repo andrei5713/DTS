@@ -137,6 +137,10 @@ function searchUsers(query) {
 
 function selectUser(user) {
     formData.value.uploadTo = user.name
+    // Auto-fill the department/division based on the selected user's unit
+    if (user.unit_name && user.unit_name !== 'N/A') {
+        formData.value.originatingOffice = user.unit_name
+    }
     showUserSuggestions.value = false
     selectedUserIndex.value = -1
 }
@@ -398,6 +402,7 @@ watch(() => currentUserFromPage.value, (newUser) => {
                   >
                     <div class="font-medium">{{ user.name }}</div>
                     <div class="text-sm text-gray-600">{{ user.username }} • {{ user.email }}</div>
+                    <div class="text-xs text-gray-500">{{ user.unit_name }}</div>
                   </div>
                 </div>
                 <p v-if="errors.uploadTo" class="mt-1 text-sm text-red-600">{{ errors.uploadTo }}</p>
