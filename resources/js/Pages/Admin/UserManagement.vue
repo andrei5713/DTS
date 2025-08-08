@@ -1,22 +1,21 @@
 <template>
-  <div class="space-y-6">
-    <!-- Search (removed Add User button) -->
-    <div class="flex justify-between items-center">
-      <div class="flex-1 max-w-sm">
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search users..."
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-      <!-- Removed Add User button -->
+  
+  <!-- Users Table -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4">
+      <h3 class="text-lg font-medium text-gray-900">All Users</h3>
     </div>
-
-    <!-- Users Table -->
-    <div class="bg-white rounded-lg shadow">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-medium text-gray-900">All Users</h3>
+    <div class="space-y-4">
+      <!-- Search (removed Add User button) -->
+      <div class="flex justify-between items-center">
+        <div class="flex-1 px-4 max-w-sm">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search users..."
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
       </div>
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
@@ -52,8 +51,8 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ user.unit?.full_name || 'N/A' }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="statusColors[user.role]">
+              <td class="px-4 py-4 whitespace-nowrap">
+                <span class="inline-flex px-4 py-1 text-xs font-semibold rounded-full" :class="statusColors[user.role]">
                   {{ user.role === 'pending' ? 'Pending' : user.role === 'encoder' ? 'Encoder' : user.role === 'viewer' ? 'Viewer' : user.role }}
                 </span>
               </td>

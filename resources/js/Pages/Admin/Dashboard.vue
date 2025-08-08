@@ -9,7 +9,7 @@ const props = defineProps({
 
 const roleColors = {
     admin: 'bg-red-100 text-red-800',
-                encoder: 'bg-blue-100 text-blue-800',
+    encoder: 'bg-blue-100 text-blue-800',
     viewer: 'bg-green-100 text-green-800',
     pending: 'bg-yellow-100 text-yellow-800',
 }
@@ -19,10 +19,11 @@ const roleColors = {
     <Head title="Admin Dashboard" />
     
     <AdminLayout>
-        <div class="space-y-6">
+        <div class="space-y-8">
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="bg-white rounded-lg shadow p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Total Users -->
+                <div class="bg-white rounded-lg shadow-lg p-6 border border-gray-200 transition-transform transform hover:scale-105">
                     <div class="flex items-center">
                         <div class="p-3 rounded-full bg-blue-100 text-blue-600">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,12 +32,13 @@ const roleColors = {
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Total Users</p>
-                            <p class="text-2xl font-semibold text-gray-900">{{ stats.total_users }}</p>
+                            <p class="text-3xl font-semibold text-gray-900">{{ stats.total_users }}</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow p-6">
+                <!-- Admin Users -->
+                <div class="bg-white rounded-lg shadow-lg p-6 border border-gray-200 transition-transform transform hover:scale-105">
                     <div class="flex items-center">
                         <div class="p-3 rounded-full bg-red-100 text-red-600">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,12 +47,13 @@ const roleColors = {
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Admin Users</p>
-                            <p class="text-2xl font-semibold text-gray-900">{{ stats.admin_users }}</p>
+                            <p class="text-3xl font-semibold text-gray-900">{{ stats.admin_users }}</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow p-6">
+                <!-- Active Units -->
+                <div class="bg-white rounded-lg shadow-lg p-6 border border-gray-200 transition-transform transform hover:scale-105">
                     <div class="flex items-center">
                         <div class="p-3 rounded-full bg-green-100 text-green-600">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,20 +62,20 @@ const roleColors = {
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Active Units</p>
-                            <p class="text-2xl font-semibold text-gray-900">{{ stats.active_units }}</p>
+                            <p class="text-3xl font-semibold text-gray-900">{{ stats.active_units }}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Recent Users -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900">Recent Users</h3>
+            <!-- Recent Users Table -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-lg font-semibold text-gray-900">Recent Users</h3>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                        <thead class="bg-gray-100">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
@@ -82,13 +85,13 @@ const roleColors = {
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-for="user in recent_users" :key="user.id">
+                            <tr v-for="user in recent_users" :key="user.id" class="hover:bg-gray-50 transition-colors duration-300">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-medium text-gray-900">{{ user.name }}</div>
                                     <div class="text-sm text-gray-500">{{ user.username }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.email }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
                                     <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="roleColors[user.role]">
                                         {{ user.role === 'encoder' ? 'Encoder' : user.role === 'viewer' ? 'Viewer' : user.role === 'pending' ? 'Pending' : user.role }}
                                     </span>
@@ -106,4 +109,4 @@ const roleColors = {
             </div>
         </div>
     </AdminLayout>
-</template> 
+</template>
