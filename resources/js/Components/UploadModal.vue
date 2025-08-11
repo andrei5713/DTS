@@ -13,23 +13,11 @@ const props = defineProps({
 const emit = defineEmits(['close', 'upload'])
 
 function generateTrackingNumber(prefix) {
-    const now = new Date()
-    const yyyy = now.getFullYear()
-    const mm = String(now.getMonth() + 1).padStart(2, '0')
-
-    const userId = props.currentUser?.id || 'guest'
-    const storageKey = `tracking-seq-${userId}-${yyyy}-${mm}`
-
-    // Get last sequence for this user/month
-    let lastSeq = parseInt(localStorage.getItem(storageKey) || '0', 10)
-    lastSeq += 1
-
-    // Save new sequence
-    localStorage.setItem(storageKey, lastSeq)
-
-    const seqStr = String(lastSeq).padStart(3, '0')
-
-    return `${prefix || 'XXX'}-${yyyy}-${mm}-${seqStr}`
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `${prefix || 'XXX'}-${yyyy}-${mm}-${rand}`;
 }
 
 const formData = ref({
