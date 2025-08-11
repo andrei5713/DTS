@@ -3,45 +3,28 @@ import { ref, watch, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 
 const props = defineProps({
-    show: {
-        type: Boolean,
-        default: false
-    },
-    title: {
-        type: String,
-        default: 'Upload Document'
-    },
-    formData: {
-        type: Object,
-        default: null
-    },
-    units: {
-        type: Array,
-        default: () => []
-    },
-    currentUser: {
-        type: Object,
-        default: null
-    }
+    show: { type: Boolean, default: false },
+    title: { type: String, default: 'Upload Document' },
+    formData: { type: Object, default: null },
+    units: { type: Array, default: () => [] },
+    currentUser: { type: Object, default: null }
 })
 
 const emit = defineEmits(['close', 'upload'])
 
-function generateTrackingNumber() {
-    const prefix = 'CPMSD';
+function generateTrackingNumber(prefix) {
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
     const rand = Math.floor(1000 + Math.random() * 9000);
-    return `${prefix}-${yyyy}-${mm}-${rand}`;
+    return `${prefix || 'XXX'}-${yyyy}-${mm}-${rand}`;
 }
 
 const formData = ref({
     trackingCode: '',
     documentType: '',
     subject: '',
-    entryDate: new Date().toISOString().slice(0, 10), // auto entry date
+    entryDate: new Date().toISOString().slice(0, 10),
     uploadBy: '',
     uploadTo: '',
     originatingOffice: '',
@@ -63,7 +46,6 @@ const isRoutingOpen = ref(false)
 const isDepartmentOpen = ref(false)
 const isForwardToDepartmentOpen = ref(false)
 
-// Autocomplete functionality
 const users = ref([])
 const filteredUsers = ref([])
 const showUserSuggestions = ref(false)
@@ -76,12 +58,7 @@ const statusOptions = [
     { label: 'Urgent', days: 1, color: 'purple', value: 'urgent' },
 ]
 
-const documentTypes = [
-    'Memo',
-    'Letter',
-    'PR',
-    'DV',
-]
+const documentTypes = ['Memo', 'Letter', 'PR', 'DV']
 
 const priorities = [
     'Simple (3 days)',
@@ -92,14 +69,17 @@ const priorities = [
 
 function closeModal() {
     emit('close')
-    // Reset only after closing
+    const user = props.currentUser || currentUserFromPage.value
+    const originatingOffice = user && user.unit ? user.unit.full_name : ''
     formData.value = {
-        trackingCode: generateTrackingNumber(),
+        trackingCode: generateTrackingNumber(originatingOffice),
         documentType: '',
         subject: '',
-        entryDate: new Date().toISOString().slice(0, 10), // auto entry date
-        uploadBy: '',
-        originatingOffice: '',
+        entryDate: new Date().toISOString().slice(0, 10),
+        uploadBy: user ? user.name : '',
+        uploadTo: '',
+        originatingOffice,
+        forwardToDepartment: '',
         originType: 'internal',
         priority: '',
         remarks: '',
@@ -125,8 +105,7 @@ function searchUsers(query) {
         showUserSuggestions.value = false
         return
     }
-    
-    filteredUsers.value = users.value.filter(user => 
+    filteredUsers.value = users.value.filter(user =>
         user.name.toLowerCase().includes(query.toLowerCase()) ||
         user.username.toLowerCase().includes(query.toLowerCase()) ||
         user.email.toLowerCase().includes(query.toLowerCase())
@@ -137,7 +116,6 @@ function searchUsers(query) {
 
 function selectUser(user) {
     formData.value.uploadTo = user.name
-    // Auto-fill the forward to department/division based on the selected user's unit
     if (user.unit_name && user.unit_name !== 'N/A') {
         formData.value.forwardToDepartment = user.unit_name
     }
@@ -147,7 +125,6 @@ function selectUser(user) {
 
 function handleKeydown(event) {
     if (!showUserSuggestions.value) return
-    
     if (event.key === 'ArrowDown') {
         event.preventDefault()
         selectedUserIndex.value = Math.min(selectedUserIndex.value + 1, filteredUsers.value.length - 1)
@@ -174,14 +151,15 @@ function handleBlur() {
 
 function resetForm() {
     const user = props.currentUser || currentUserFromPage.value
+    const originatingOffice = user && user.unit ? user.unit.full_name : ''
     formData.value = {
-        trackingCode: generateTrackingNumber(),
+        trackingCode: generateTrackingNumber(originatingOffice),
         documentType: '',
         subject: '',
-        entryDate: new Date().toISOString().slice(0, 10), // auto entry date
+        entryDate: new Date().toISOString().slice(0, 10),
         uploadBy: user ? user.name : '',
         uploadTo: '',
-        originatingOffice: user && user.unit ? user.unit.full_name : '',
+        originatingOffice,
         forwardToDepartment: '',
         originType: 'internal',
         priority: '',
@@ -212,40 +190,20 @@ function handleFileChange(event) {
 
 function validateForm() {
     errors.value = {}
-    if (!formData.value.trackingCode.trim()) {
-        errors.value.trackingCode = 'Tracking number is required'
-    }
-    if (!formData.value.documentType) {
-        errors.value.documentType = 'Document type is required'
-    }
-    if (!formData.value.subject.trim()) {
-        errors.value.subject = 'Subject is required'
-    }
-    if (!formData.value.entryDate) {
-        errors.value.entryDate = 'Date of entry is required'
-    }
-    if (!formData.value.uploadBy.trim()) {
-        errors.value.uploadBy = 'Upload by is required'
-    }
-    if (!formData.value.uploadTo.trim()) {
-        errors.value.uploadTo = 'Upload to is required'
-    }
-    if (!formData.value.originatingOffice.trim()) {
-        errors.value.originatingOffice = 'Originating office is required'
-    }
-    if (!formData.value.priority) {
-        errors.value.priority = 'Priority is required'
-    }
-    if (!formData.value.file) {
-        errors.value.file = 'File is required'
-    }
+    if (!formData.value.trackingCode.trim()) errors.value.trackingCode = 'Tracking number is required'
+    if (!formData.value.documentType) errors.value.documentType = 'Document type is required'
+    if (!formData.value.subject.trim()) errors.value.subject = 'Subject is required'
+    if (!formData.value.entryDate) errors.value.entryDate = 'Date of entry is required'
+    if (!formData.value.uploadBy.trim()) errors.value.uploadBy = 'Upload by is required'
+    if (!formData.value.uploadTo.trim()) errors.value.uploadTo = 'Upload to is required'
+    if (!formData.value.originatingOffice.trim()) errors.value.originatingOffice = 'Originating office is required'
+    if (!formData.value.priority) errors.value.priority = 'Priority is required'
+    if (!formData.value.file) errors.value.file = 'File is required'
     return Object.keys(errors.value).length === 0
 }
 
 async function handleSubmit() {
-    if (!validateForm()) {
-        return
-    }
+    if (!validateForm()) return
     isUploading.value = true
     try {
         const uploadData = new FormData()
@@ -266,63 +224,40 @@ async function handleSubmit() {
     }
 }
 
+const page = usePage()
+const currentUserFromPage = computed(() => page.props.auth?.user)
+
 watch(() => props.show, (newValue) => {
-    if (newValue) {
-        // Only reset if not editing
-        if (!props.formData) {
-            resetForm()
-        }
-        // Fetch users for autocomplete
+    if (newValue && !props.formData) {
+        resetForm()
         fetchUsers()
     }
 })
 
 watch(() => props.formData, (newVal) => {
-  if (newVal) {
-    formData.value = { ...newVal };
-  } else {
-    // Only reset if not editing
-    const user = props.currentUser || currentUserFromPage.value
-    formData.value = {
-      trackingCode: generateTrackingNumber(),
-      documentType: '',
-      subject: '',
-      entryDate: new Date().toISOString().slice(0, 10), // auto entry date
-      uploadBy: user ? user.name : '',
-      uploadTo: '',
-      originatingOffice: user && user.unit ? user.unit.full_name : '',
-      forwardToDepartment: '',
-      originType: 'internal',
-      priority: '',
-      remarks: '',
-      file: null,
-      routing: 'internal',
-    };
-  }
-}, { immediate: true });
-
-// Get current user directly from page props
-const page = usePage()
-const currentUserFromPage = computed(() => page.props.auth?.user)
-
-// Watch for current user changes
-watch(() => props.currentUser, (newUser) => {
-  if (newUser && !props.formData) {
-    formData.value.uploadBy = newUser.name
-    if (newUser.unit && newUser.unit.full_name) {
-      formData.value.originatingOffice = newUser.unit.full_name
+    if (newVal) {
+        formData.value = { ...newVal }
+    } else {
+        resetForm()
     }
-  }
 }, { immediate: true })
 
-// Also watch the page user
-watch(() => currentUserFromPage.value, (newUser) => {
-  if (newUser && !props.formData && !formData.value.uploadBy) {
-    formData.value.uploadBy = newUser.name
-    if (newUser.unit && newUser.unit.full_name) {
-      formData.value.originatingOffice = newUser.unit.full_name
+watch(() => props.currentUser, (newUser) => {
+    if (newUser && !props.formData) {
+        formData.value.uploadBy = newUser.name
+        if (newUser.unit && newUser.unit.full_name) {
+            formData.value.originatingOffice = newUser.unit.full_name
+        }
     }
-  }
+}, { immediate: true })
+
+watch(() => currentUserFromPage.value, (newUser) => {
+    if (newUser && !props.formData && !formData.value.uploadBy) {
+        formData.value.uploadBy = newUser.name
+        if (newUser.unit && newUser.unit.full_name) {
+            formData.value.originatingOffice = newUser.unit.full_name
+        }
+    }
 }, { immediate: true })
 </script>
 
