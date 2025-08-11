@@ -143,7 +143,7 @@ const filteredRows = computed(() => {
 
 async function fetchDocuments() {
   try {
-    const response = await fetch('/documents');
+    const response = await fetch('/documents/incoming');
     const data = await response.json();
     documents.value = data.documents || [];
   } catch (error) {

@@ -82,7 +82,7 @@ async function fetchUnits() {
 
 async function fetchDocuments() {
   try {
-    const response = await fetch('/documents');
+    const response = await fetch('/documents/outgoing');
     const data = await response.json();
     documents.value = data.documents || [];
   } catch (error) {

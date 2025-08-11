@@ -88,6 +88,8 @@ Route::middleware('auth')->group(function () {
     
     // Document routes
     Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
+    Route::get('/documents/incoming', [DocumentController::class, 'incoming'])->name('documents.incoming');
+    Route::get('/documents/outgoing', [DocumentController::class, 'outgoing'])->name('documents.outgoing');
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::post('/documents/{document}/receive', [DocumentController::class, 'receive'])->name('documents.receive');
     Route::post('/documents/{document}/forward', [DocumentController::class, 'forward'])->name('documents.forward');

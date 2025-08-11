@@ -30,6 +30,44 @@ class DocumentController extends Controller
         ]);
     }
 
+    public function incoming()
+    {
+        $user = Auth::user();
+        
+        // Get incoming documents (where user is current recipient or uploaded to user after DO forwarding)
+        $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
+            ->where(function($query) use ($user) {
+                // Documents where current user is the current recipient
+                $query->where('current_recipient_id', $user->id)
+                      // Documents uploaded to the current user (but only if they've been forwarded by DO)
+                      ->orWhere(function($subQuery) use ($user) {
+                          $subQuery->where('upload_to_user_id', $user->id)
+                                   ->where('status', '!=', 'pending');
+                      });
+            })
+            ->latest()
+            ->get();
+            
+        return response()->json([
+            'documents' => $documents
+        ]);
+    }
+
+    public function outgoing()
+    {
+        $user = Auth::user();
+        
+        // Get outgoing documents (uploaded by the current user)
+        $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
+            ->where('upload_by_user_id', $user->id)
+            ->latest()
+            ->get();
+            
+        return response()->json([
+            'documents' => $documents
+        ]);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -50,12 +88,11 @@ class DocumentController extends Controller
 
         $user = Auth::user();
         
-        // Check if user can upload (must be from /DO unit)
-        $userUnit = $user->unit->full_name ?? '';
-        if (!str_ends_with($userUnit, '/DO')) {
+        // Check if user can upload (must be encoder or admin)
+        if (!in_array($user->role, ['encoder', 'admin'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only users from Director\'s Office units can upload documents.'
+                'message' => 'Only encoders and admins can upload documents.'
             ], 403);
         }
 
@@ -73,9 +110,9 @@ class DocumentController extends Controller
         $fileName = time() . '_' . $file->getClientOriginalName();
         $filePath = $file->storeAs('documents', $fileName, 'public');
 
-        // Determine the initial recipient based on routing logic
-        $targetUnit = $uploadToUser->unit->full_name ?? '';
-        $initialRecipient = $this->getInitialRecipient($targetUnit);
+        // Determine the initial recipient based on uploader's department
+        $uploaderUnit = $user->unit->full_name ?? '';
+        $initialRecipient = $this->getInitialRecipient($uploaderUnit);
 
         // Create the document
         $document = Document::create([
@@ -154,11 +191,25 @@ class DocumentController extends Controller
             ], 400);
         }
 
-        $document->update([
-            'status' => 'forwarded',
-            'current_recipient_id' => $forwardToUser->id,
-            'forward_notes' => $request->forward_notes,
-        ]);
+        // Check if this is a DO forwarding to the intended recipient
+        $userUnit = $user->unit->full_name ?? '';
+        $isDOForwarding = str_ends_with($userUnit, '/DO');
+        
+        if ($isDOForwarding && $forwardToUser->id === $document->upload_to_user_id) {
+            // DO is forwarding to the intended recipient
+            $document->update([
+                'status' => 'forwarded',
+                'current_recipient_id' => $forwardToUser->id,
+                'forward_notes' => $request->forward_notes,
+            ]);
+        } else {
+            // Regular forwarding
+            $document->update([
+                'status' => 'forwarded',
+                'current_recipient_id' => $forwardToUser->id,
+                'forward_notes' => $request->forward_notes,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -187,17 +238,17 @@ class DocumentController extends Controller
         ]);
     }
 
-    private function getInitialRecipient($targetUnit)
+    private function getInitialRecipient($uploaderUnit)
     {
-        // If target unit ends with /DO, send directly
-        if (str_ends_with($targetUnit, '/DO')) {
-            return User::whereHas('unit', function($query) use ($targetUnit) {
-                $query->where('full_name', $targetUnit);
+        // If uploader is from DO, they can send directly to recipient
+        if (str_ends_with($uploaderUnit, '/DO')) {
+            return User::whereHas('unit', function($query) use ($uploaderUnit) {
+                $query->where('full_name', $uploaderUnit);
             })->first();
         }
         
-        // Otherwise, route to the appropriate /DO unit
-        if (str_starts_with($targetUnit, 'FD/')) {
+        // Otherwise, route to the appropriate /DO unit based on uploader's department
+        if (str_starts_with($uploaderUnit, 'FD/')) {
             return User::whereHas('unit', function($query) {
                 $query->where('full_name', 'FD/DO');
             })->first();
@@ -212,11 +263,12 @@ class DocumentController extends Controller
     {
         $user = Auth::user();
         $userUnit = $user->unit->full_name ?? '';
-        $canUpload = str_ends_with($userUnit, '/DO');
+        $canUpload = in_array($user->role, ['encoder', 'admin']);
         
         return response()->json([
             'can_upload' => $canUpload,
-            'user_unit' => $userUnit
+            'user_unit' => $userUnit,
+            'user_role' => $user->role
         ]);
     }
 }
