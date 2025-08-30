@@ -16,7 +16,8 @@
           <button 
             v-if="row.status === 'pending' && row.current_recipient_id === currentUser?.id"
             @click="acceptDocument(row.id)"
-            class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-300"
+            :disabled="acceptingId === row.id"
+            class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-300 disabled:opacity-50"
           >
             Accept
           </button>
@@ -30,7 +31,8 @@
           <button 
             v-if="row.status === 'pending' && row.current_recipient_id === currentUser?.id"
             @click="rejectDocument(row.id)"
-            class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-300"
+            :disabled="rejectingId === row.id"
+            class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50"
           >
             Reject
           </button>
@@ -59,7 +61,7 @@
                 @input="searchUsers($event.target.value)"
                 @keydown="handleKeydown"
                 @focus="showUserSuggestions = true"
-                @blur="setTimeout(() => showUserSuggestions = false, 200)"
+                @blur="handleBlur"
                 placeholder="Start typing to search users..."
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
@@ -98,11 +100,23 @@
         </div>
       </div>
     </div>
+
+    <!-- PDF Preview Modal -->
+    <div v-if="showPdfModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full relative">
+        <button @click="closePdfModal" class="absolute top-2 right-2 text-gray-600 hover:text-black text-2xl">&times;</button>
+        <div class="p-4">
+          <h3 class="text-lg font-semibold mb-2">PDF Preview: {{ pdfDocument?.subject }}</h3>
+          <iframe v-if="pdfUrl" :src="pdfUrl" width="100%" height="600px" frameborder="0"></iframe>
+          <div v-else class="text-center text-gray-500">No PDF available.</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Table from '@/Components/Table.vue';
 import SearchBar from '@/Components/SearchBar.vue';
@@ -143,7 +157,7 @@ const filteredRows = computed(() => {
 
 async function fetchDocuments() {
   try {
-    const response = await fetch('/documents/incoming');
+    const response = await fetch('/documents/incoming?all=1');
     const data = await response.json();
     documents.value = data.documents || [];
   } catch (error) {
@@ -169,11 +183,28 @@ function searchUsers(query) {
     return;
   }
   
-  filteredUsers.value = users.value.filter(user => 
-    user.name.toLowerCase().includes(query.toLowerCase()) ||
-    user.username.toLowerCase().includes(query.toLowerCase()) ||
-    user.email.toLowerCase().includes(query.toLowerCase())
-  );
+  // Filter users to only show those within the same department, excluding /DO units
+  const currentUserUnit = currentUser.value?.unit?.full_name || '';
+  const currentUserDepartment = currentUserUnit.split('/')[0];
+  
+  filteredUsers.value = users.value.filter(user => {
+    // Only show users within the same department
+    const userDepartment = user.unit?.full_name?.split('/')[0] || '';
+    if (userDepartment !== currentUserDepartment) {
+      return false;
+    }
+    
+    // Exclude users with /DO units
+    if (user.unit?.full_name?.endsWith('/DO')) {
+      return false;
+    }
+    
+    // Filter by search query
+    return user.name.toLowerCase().includes(query.toLowerCase()) ||
+           user.username.toLowerCase().includes(query.toLowerCase()) ||
+           user.email.toLowerCase().includes(query.toLowerCase());
+  });
+  
   showUserSuggestions.value = filteredUsers.value.length > 0;
   selectedUserIndex.value = -1;
 }
@@ -204,35 +235,40 @@ function handleKeydown(event) {
   }
 }
 
+function handleBlur() {
+  setTimeout(() => {
+    showUserSuggestions.value = false;
+    selectedUserIndex.value = -1;
+  }, 200);
+}
+
 function openForwardModal(document) {
   selectedDocument.value = document;
   showForwardModal.value = true;
   fetchUsers();
 }
 
-function viewDocument(document) {
-  // Show document details in a modal or navigate to document view
-  alert(`Document: ${document.subject}\nUploaded by: ${document.upload_by}\nUnit: ${document.originating_office}`);
+const acceptingId = ref(null);
+const rejectingId = ref(null);
+const showPdfModal = ref(false);
+const pdfDocument = ref(null);
+const pdfUrl = ref("");
+
+function closePdfModal() {
+  showPdfModal.value = false;
+  pdfUrl.value = "";
+  pdfDocument.value = null;
 }
 
-async function acceptDocument(documentId) {
-  try {
-    const response = await fetch(`/documents/${documentId}/receive`, {
-      method: 'POST',
-      headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-      }
-    });
-    
-    if (response.ok) {
-      await fetchDocuments(); // Refresh the documents list
-    } else {
-      alert('Error accepting document');
-    }
-  } catch (error) {
-    console.error('Error accepting document:', error);
-    alert('Error accepting document');
+function viewDocument(document) {
+  // Show PDF preview modal
+  pdfDocument.value = document;
+  if (document.file_path) {
+    pdfUrl.value = `/storage/${document.file_path}`;
+  } else {
+    pdfUrl.value = "";
   }
+  showPdfModal.value = true;
 }
 
 async function forwardDocument() {
@@ -259,11 +295,34 @@ async function forwardDocument() {
   }
 }
 
+async function acceptDocument(documentId) {
+  acceptingId.value = documentId;
+  try {
+    const response = await fetch(`/documents/${documentId}/receive`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      }
+    });
+    if (response.ok) {
+      await fetchDocuments();
+    } else {
+      const data = await response.json().catch(() => ({}));
+      alert(data.message || 'Error accepting document');
+    }
+  } catch (error) {
+    console.error('Error accepting document:', error);
+    alert('Error accepting document');
+  } finally {
+    acceptingId.value = null;
+  }
+}
+
 async function rejectDocument(documentId) {
   if (!confirm('Are you sure you want to reject this document?')) {
     return;
   }
-  
+  rejectingId.value = documentId;
   try {
     const response = await fetch(`/documents/${documentId}/reject`, {
       method: 'POST',
@@ -271,19 +330,29 @@ async function rejectDocument(documentId) {
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
       }
     });
-    
     if (response.ok) {
-      await fetchDocuments(); // Refresh the documents list
+      await fetchDocuments();
     } else {
-      alert('Error rejecting document');
+      const data = await response.json().catch(() => ({}));
+      alert(data.message || 'Error rejecting document');
     }
   } catch (error) {
     console.error('Error rejecting document:', error);
     alert('Error rejecting document');
+  } finally {
+    rejectingId.value = null;
   }
 }
 
+let pollTimer = null;
+
 onMounted(() => {
   fetchDocuments();
+  // Poll every 5 seconds for near-instant updates
+  pollTimer = setInterval(fetchDocuments, 5000);
+});
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer);
 });
 </script> 

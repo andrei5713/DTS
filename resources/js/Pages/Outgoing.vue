@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Table from '@/Components/Table.vue';
 import UploadModal from '@/Components/UploadModal.vue';
@@ -53,6 +53,8 @@ const editFormData = ref(null);
 const units = ref([]);
 const canUpload = ref(false);
 const { confirmDelete } = useDeleteAlert();
+
+let pollTimer = null;
 
 // Get current user from page props
 const page = usePage();
@@ -187,5 +189,13 @@ onMounted(() => {
   fetchUnits();
   checkCanUpload();
   fetchDocuments();
+  // Poll every 5 seconds for near-instant updates
+  pollTimer = setInterval(() => {
+    fetchDocuments();
+  }, 5000);
+});
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer);
 });
 </script> 

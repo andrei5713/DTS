@@ -105,11 +105,29 @@ function searchUsers(query) {
         showUserSuggestions.value = false
         return
     }
-    filteredUsers.value = users.value.filter(user =>
-        user.name.toLowerCase().includes(query.toLowerCase()) ||
-        user.username.toLowerCase().includes(query.toLowerCase()) ||
-        user.email.toLowerCase().includes(query.toLowerCase())
-    )
+    
+    // Filter users to only show those with /DO units, excluding the current user's /DO unit
+    const currentUserUnit = props.currentUser?.unit?.full_name || ''
+    const currentUserDepartment = currentUserUnit.split('/')[0]
+    
+    filteredUsers.value = users.value.filter(user => {
+        // Only show users with /DO units
+        if (!user.unit_name || !user.unit_name.endsWith('/DO')) {
+            return false
+        }
+        
+        // Exclude users from the same department as the uploader
+        const userDepartment = user.unit_name.split('/')[0]
+        if (userDepartment === currentUserDepartment) {
+            return false
+        }
+        
+        // Filter by search query
+        return user.name.toLowerCase().includes(query.toLowerCase()) ||
+               user.username.toLowerCase().includes(query.toLowerCase()) ||
+               user.email.toLowerCase().includes(query.toLowerCase())
+    })
+    
     showUserSuggestions.value = filteredUsers.value.length > 0
     selectedUserIndex.value = -1
 }
@@ -313,13 +331,13 @@ watch(() => currentUserFromPage.value, (newUser) => {
               </div>
               <!-- Upload By -->
               <div>
-                <label for="uploadBy" class="block text-sm font-medium text-gray-700 mb-1">Upload By *</label>
+                <label for="uploadBy" class="block text-sm font-medium text-gray-700 mb-1">Uploaded By *</label>
                 <input id="uploadBy" v-model="formData.uploadBy" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.uploadBy }" readonly />
                 <p v-if="errors.uploadBy" class="mt-1 text-sm text-red-600">{{ errors.uploadBy }}</p>
               </div>
               <!-- Upload To -->
               <div class="relative">
-                <label for="uploadTo" class="block text-sm font-medium text-gray-700 mb-1">Upload To *</label>
+                <label for="uploadTo" class="block text-sm font-medium text-gray-700 mb-1">Route To *</label>
                 <input 
                   id="uploadTo" 
                   v-model="formData.uploadTo" 

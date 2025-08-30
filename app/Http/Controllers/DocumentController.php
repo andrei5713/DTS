@@ -30,24 +30,31 @@ class DocumentController extends Controller
         ]);
     }
 
-    public function incoming()
+    public function incoming(Request $request)
     {
         $user = Auth::user();
-        
-        // Get incoming documents (where user is current recipient or uploaded to user after DO forwarding)
-        $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
-            ->where(function($query) use ($user) {
-                // Documents where current user is the current recipient
-                $query->where('current_recipient_id', $user->id)
-                      // Documents uploaded to the current user (but only if they've been forwarded by DO)
-                      ->orWhere(function($subQuery) use ($user) {
-                          $subQuery->where('upload_to_user_id', $user->id)
-                                   ->where('status', '!=', 'pending');
-                      });
-            })
-            ->latest()
-            ->get();
-            
+        $showAll = $request->query('all', false);
+
+        if ($showAll) {
+            // Show all documents ever sent to the user (as recipient or upload_to)
+            $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
+                ->where(function($query) use ($user) {
+                    $query->where('current_recipient_id', $user->id)
+                          ->orWhere('upload_to_user_id', $user->id);
+                })
+                ->latest()
+                ->get();
+        } else {
+            // Default: show items requiring attention and anything addressed to the user (regardless of status)
+            $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
+                ->where(function($query) use ($user) {
+                    $query->where('current_recipient_id', $user->id)
+                          ->orWhere('upload_to_user_id', $user->id);
+                })
+                ->latest()
+                ->get();
+        }
+
         return response()->json([
             'documents' => $documents
         ]);
@@ -203,7 +210,17 @@ class DocumentController extends Controller
                 'forward_notes' => $request->forward_notes,
             ]);
         } else {
-            // Regular forwarding
+            // Regular forwarding - restrict to same department
+            $userDepartment = explode('/', $userUnit)[0];
+            $forwardToUserDepartment = explode('/', $forwardToUser->unit->full_name ?? '')[0];
+            
+            if ($userDepartment !== $forwardToUserDepartment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only forward documents within your own department.'
+                ], 403);
+            }
+            
             $document->update([
                 'status' => 'forwarded',
                 'current_recipient_id' => $forwardToUser->id,
@@ -247,16 +264,14 @@ class DocumentController extends Controller
             })->first();
         }
         
-        // Otherwise, route to the appropriate /DO unit based on uploader's department
-        if (str_starts_with($uploaderUnit, 'FD/')) {
-            return User::whereHas('unit', function($query) {
-                $query->where('full_name', 'FD/DO');
-            })->first();
-        } else {
-            return User::whereHas('unit', function($query) {
-                $query->where('full_name', 'CPMSD/DO');
-            })->first();
-        }
+        // Otherwise, route to the DO of the recipient's department
+        // Extract the department prefix (e.g., 'FD' from 'FD/DO', 'CPMSD' from 'CPMSD/DO')
+        $departmentPrefix = explode('/', $uploaderUnit)[0];
+        
+        // Route to the DO of that department
+        return User::whereHas('unit', function($query) use ($departmentPrefix) {
+            $query->where('full_name', $departmentPrefix . '/DO');
+        })->first();
     }
 
     public function canUserUpload()
