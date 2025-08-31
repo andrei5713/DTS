@@ -1,47 +1,82 @@
 <template>
   <div>
     <h2 class="text-2xl font-bold mb-2">Incoming Documents</h2>
-    <div class="flex items-center justify-between mb-4">
-      <SearchBar v-model="searchQuery" placeholder="Search Incoming Documents" />
+        <div class="flex items-center justify-between mb-4">
+      <SearchBar v-model="searchQuery" placeholder="Search documents..." />
     </div>
-    <Table :columns="columns" :rows="filteredRows">
-            <template #ACTIONS="{ row }">
-        <div class="flex gap-2">
-          <button 
-            @click="viewDocument(row)"
-            class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            View
-          </button>
-          <button 
-            v-if="row.status === 'pending' && row.current_recipient_id === currentUser?.id"
-            @click="acceptDocument(row.id)"
-            :disabled="acceptingId === row.id"
-            class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-300 disabled:opacity-50"
-          >
-            Accept
-          </button>
-          <button 
-            v-if="row.status === 'pending' && row.current_recipient_id === currentUser?.id"
-            @click="openForwardModal(row)"
-            class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-yellow-300"
-          >
-            Forward
-          </button>
-          <button 
-            v-if="row.status === 'pending' && row.current_recipient_id === currentUser?.id"
-            @click="rejectDocument(row.id)"
-            :disabled="rejectingId === row.id"
-            class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50"
-          >
-            Reject
-          </button>
-          <span v-else-if="row.status === 'received'" class="text-green-600 text-sm">Accepted</span>
-          <span v-else-if="row.status === 'forwarded'" class="text-yellow-600 text-sm">Forwarded</span>
-          <span v-else-if="row.status === 'rejected'" class="text-red-600 text-sm">Rejected</span>
-        </div>
-      </template>
-    </Table>
+    
+    <!-- Approval Queue Table -->
+    <div class="bg-white rounded-lg shadow mb-6">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Approval Queue</h3>
+        <p class="text-sm text-gray-600 mt-1">Documents pending your approval</p>
+      </div>
+      <Table :columns="approvalColumns" :rows="pendingDocuments">
+        <template #ACTIONS="{ row }">
+          <div class="flex gap-2">
+            <button 
+              @click="viewDocument(row)"
+              class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+              View
+            </button>
+            <button 
+              v-if="row.current_recipient_id === currentUser?.id && canPerformActions(row)"
+              @click="acceptDocument(row.id)"
+              :disabled="acceptingId === row.id"
+              class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-300 disabled:opacity-50"
+            >
+              Accept
+            </button>
+            <button 
+              v-if="row.current_recipient_id === currentUser?.id && canPerformActions(row)"
+              @click="openForwardModal(row)"
+              class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-yellow-300"
+            >
+              Forward
+            </button>
+            <button 
+              v-if="row.current_recipient_id === currentUser?.id && canPerformActions(row)"
+              @click="rejectDocument(row.id)"
+              :disabled="rejectingId === row.id"
+              class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50"
+            >
+              Reject
+            </button>
+            <div v-else-if="row.current_recipient_id === currentUser?.id && !canPerformActions(row)" class="text-gray-500 text-xs">
+              Only DO of forwarded unit can perform actions
+            </div>
+          </div>
+        </template>
+      </Table>
+      <div v-if="pendingDocuments.length === 0" class="px-6 py-4 text-center text-sm text-gray-500">
+        No documents pending approval
+      </div>
+    </div>
+
+    <!-- Received Documents Table -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Received Documents</h3>
+        <p class="text-sm text-gray-600 mt-1">Documents you have accepted</p>
+      </div>
+      <Table :columns="receivedColumns" :rows="receivedDocuments">
+        <template #ACTIONS="{ row }">
+          <div class="flex gap-2">
+            <button 
+              @click="viewDocument(row)"
+              class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+              View
+            </button>
+            <span class="text-green-600 text-sm font-medium">Accepted</span>
+          </div>
+        </template>
+      </Table>
+      <div v-if="receivedDocuments.length === 0" class="px-6 py-4 text-center text-sm text-gray-500">
+        No received documents
+      </div>
+    </div>
 
     <!-- Forward Modal -->
     <div v-if="showForwardModal" class="fixed inset-0 z-50 overflow-y-auto">
@@ -102,16 +137,20 @@
     </div>
 
     <!-- PDF Preview Modal -->
-    <div v-if="showPdfModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full relative">
-        <button @click="closePdfModal" class="absolute top-2 right-2 text-gray-600 hover:text-black text-2xl">&times;</button>
-        <div class="p-4">
-          <h3 class="text-lg font-semibold mb-2">PDF Preview: {{ pdfDocument?.subject }}</h3>
-          <iframe v-if="pdfUrl" :src="pdfUrl" width="100%" height="600px" frameborder="0"></iframe>
-          <div v-else class="text-center text-gray-500">No PDF available.</div>
-        </div>
-      </div>
-    </div>
+    <EnhancedPdfViewer 
+      v-if="showPdfModal" 
+      :document="pdfDocument" 
+      :pdf-url="pdfUrl" 
+      @close="closePdfModal" 
+    />
+
+    <!-- Notification -->
+    <Notification 
+      :show="showNotification"
+      :message="notificationMessage"
+      :type="notificationType"
+      @close="showNotification = false"
+    />
   </div>
 </template>
 
@@ -120,6 +159,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Table from '@/Components/Table.vue';
 import SearchBar from '@/Components/SearchBar.vue';
+import EnhancedPdfViewer from '@/Components/EnhancedPdfViewer.vue';
+import Notification from '@/Components/Notification.vue';
 
 const page = usePage();
 const currentUser = computed(() => page.props.auth?.user);
@@ -132,27 +173,69 @@ const users = ref([]);
 const filteredUsers = ref([]);
 const showUserSuggestions = ref(false);
 const selectedUserIndex = ref(-1);
+const showNotification = ref(false);
+const notificationMessage = ref('');
+const notificationType = ref('info');
 
 const forwardForm = ref({
   forward_to_user: '',
   forward_notes: ''
 });
 
-const columns = [
+const approvalColumns = [
   { label: 'SUBJECT/TITLE', key: 'subject' },
   { label: 'UPLOAD BY', key: 'upload_by' },
-  { label: 'UNIT', key: 'originating_office' },
+  { label: 'UNIT', key: 'unit' },
   { label: 'ACTIONS', key: 'ACTIONS' },
 ];
 
-const filteredRows = computed(() => {
-  if (!searchQuery.value.trim()) return documents.value;
-  const q = searchQuery.value.toLowerCase();
-  return documents.value.filter(row =>
-    Object.values(row).some(val =>
-      String(val).toLowerCase().includes(q)
-    )
-  );
+const receivedColumns = [
+  { label: 'TRACKING CODE', key: 'tracking_code' },
+  { label: 'DOCUMENT TYPE', key: 'document_type' },
+  { label: 'SUBJECT', key: 'subject' },
+  { label: 'UPLOAD BY', key: 'upload_by' },
+  { label: 'UPLOAD TO', key: 'upload_to' },
+  { label: 'ORIGINATING OFFICE', key: 'originating_office' },
+  { label: 'PRIORITY', key: 'priority' },
+  { label: 'STATUS', key: 'status' },
+  { label: 'ACTIONS', key: 'ACTIONS' },
+];
+
+
+
+// Transform documents to include unit field for display
+const transformedDocuments = computed(() => {
+  return documents.value.map(doc => ({
+    ...doc,
+    unit: doc.upload_to_user?.unit?.full_name || 'N/A'
+  }));
+});
+
+// Separate documents into pending and received with search functionality
+const pendingDocuments = computed(() => {
+  let docs = transformedDocuments.value.filter(doc => doc.status === 'pending');
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.toLowerCase();
+    docs = docs.filter(doc =>
+      Object.values(doc).some(val =>
+        String(val).toLowerCase().includes(q)
+      )
+    );
+  }
+  return docs;
+});
+
+const receivedDocuments = computed(() => {
+  let docs = transformedDocuments.value.filter(doc => doc.status === 'received');
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.toLowerCase();
+    docs = docs.filter(doc =>
+      Object.values(doc).some(val =>
+        String(val).toLowerCase().includes(q)
+      )
+    );
+  }
+  return docs;
 });
 
 async function fetchDocuments() {
@@ -160,6 +243,19 @@ async function fetchDocuments() {
     const response = await fetch('/documents/incoming?all=1');
     const data = await response.json();
     documents.value = data.documents || [];
+    
+    // Debug logging
+    console.log('Fetched documents:', {
+      totalDocuments: documents.value.length,
+      documents: documents.value.map(doc => ({
+        id: doc.id,
+        subject: doc.subject,
+        current_recipient_id: doc.current_recipient_id,
+        upload_to_user_id: doc.upload_to_user_id,
+        upload_to_user: doc.upload_to_user,
+        status: doc.status
+      }))
+    });
   } catch (error) {
     console.error('Error fetching documents:', error);
   }
@@ -254,10 +350,42 @@ const showPdfModal = ref(false);
 const pdfDocument = ref(null);
 const pdfUrl = ref("");
 
+// Check if user can perform actions on a document
+function canPerformActions(document) {
+  if (!currentUser.value || !document) return false;
+  
+  // User must be the current recipient
+  if (document.current_recipient_id !== currentUser.value.id) return false;
+  
+  // User must be from a DO unit
+  const userUnit = currentUser.value.unit?.full_name || '';
+  if (!userUnit.endsWith('/DO')) return false;
+  
+  // Debug logging
+  console.log('canPerformActions check:', {
+    documentId: document.id,
+    currentUserId: currentUser.value.id,
+    documentCurrentRecipientId: document.current_recipient_id,
+    userUnit: userUnit,
+    isCurrentRecipient: document.current_recipient_id === currentUser.value.id,
+    isDO: userUnit.endsWith('/DO')
+  });
+  
+  // Simplified logic: If user is current recipient and is from a DO unit, allow actions
+  // This matches the backend logic and ensures DO users can see and act on documents
+  return true;
+}
+
 function closePdfModal() {
   showPdfModal.value = false;
   pdfUrl.value = "";
   pdfDocument.value = null;
+}
+
+function showNotificationMessage(message, type = 'info') {
+  notificationMessage.value = message;
+  notificationType.value = type;
+  showNotification.value = true;
 }
 
 function viewDocument(document) {
@@ -305,14 +433,19 @@ async function acceptDocument(documentId) {
       }
     });
     if (response.ok) {
+      const data = await response.json();
+      // Show success message with automatic forwarding info
+      if (data.message) {
+        showNotificationMessage(data.message, 'success');
+      }
       await fetchDocuments();
     } else {
       const data = await response.json().catch(() => ({}));
-      alert(data.message || 'Error accepting document');
+      showNotificationMessage(data.message || 'Error accepting document', 'error');
     }
   } catch (error) {
     console.error('Error accepting document:', error);
-    alert('Error accepting document');
+    showNotificationMessage('Error accepting document', 'error');
   } finally {
     acceptingId.value = null;
   }

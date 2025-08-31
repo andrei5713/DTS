@@ -59,6 +59,8 @@ class Document extends Model
         return str_ends_with($userUnit, '/DO');
     }
 
+
+
     public function getNextRecipient()
     {
         // Logic to determine who should receive the document next
@@ -78,5 +80,31 @@ class Document extends Model
         }
         
         return $this->uploadToUser;
+    }
+
+    public function getOriginatingUnit()
+    {
+        // Get the originating unit from the uploader
+        return $this->uploadByUser->unit->full_name ?? '';
+    }
+
+    public function getForwardedUnit()
+    {
+        // Get the unit that the document is being forwarded to
+        return $this->uploadToUser->unit->full_name ?? '';
+    }
+
+    public function isOriginatingUnitDO()
+    {
+        // Check if the originating unit is a DO
+        $originatingUnit = $this->getOriginatingUnit();
+        return str_ends_with($originatingUnit, '/DO');
+    }
+
+    public function isForwardedUnitDO()
+    {
+        // Check if the forwarded unit is a DO
+        $forwardedUnit = $this->getForwardedUnit();
+        return str_ends_with($forwardedUnit, '/DO');
     }
 }

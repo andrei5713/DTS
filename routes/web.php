@@ -95,6 +95,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/documents/{document}/forward', [DocumentController::class, 'forward'])->name('documents.forward');
     Route::post('/documents/{document}/reject', [DocumentController::class, 'reject'])->name('documents.reject');
     Route::get('/api/can-upload', [DocumentController::class, 'canUserUpload'])->name('api.can-upload');
+    Route::get('/api/documents/{document}/can-perform-action', [DocumentController::class, 'canUserPerformAction'])->name('api.can-perform-action');
+    Route::get('/api/debug-user-documents', [DocumentController::class, 'debugUserDocuments'])->name('api.debug-user-documents');
 
     // Admin Routes
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {

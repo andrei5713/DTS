@@ -12,6 +12,14 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'upload'])
 
+// Watch for modal opening to fetch users
+watch(() => props.show, (isOpen) => {
+    if (isOpen) {
+        // Fetch all users when modal opens
+        fetchUsers()
+    }
+})
+
 function generateTrackingNumber(prefix) {
     const now = new Date();
     const yyyy = now.getFullYear();
@@ -86,11 +94,17 @@ function closeModal() {
         file: null,
         routing: 'internal',
     }
+    
+    // Reset user suggestions
+    showUserSuggestions.value = false
+    selectedUserIndex.value = -1
+    filteredUsers.value = []
 }
 
 async function fetchUsers(query = '') {
     try {
-        const response = await fetch(`/api/users?q=${encodeURIComponent(query)}`)
+        // Always fetch all users, query is optional for filtering
+        const response = await fetch(`/api/users${query ? `?q=${encodeURIComponent(query)}` : ''}`)
         const data = await response.json()
         users.value = data
         filteredUsers.value = data
@@ -100,33 +114,46 @@ async function fetchUsers(query = '') {
 }
 
 function searchUsers(query) {
-    if (!query.trim()) {
-        filteredUsers.value = []
-        showUserSuggestions.value = false
-        return
-    }
-    
     // Filter users to only show those with /DO units, excluding the current user's /DO unit
     const currentUserUnit = props.currentUser?.unit?.full_name || ''
     const currentUserDepartment = currentUserUnit.split('/')[0]
     
-    filteredUsers.value = users.value.filter(user => {
-        // Only show users with /DO units
-        if (!user.unit_name || !user.unit_name.endsWith('/DO')) {
-            return false
-        }
-        
-        // Exclude users from the same department as the uploader
-        const userDepartment = user.unit_name.split('/')[0]
-        if (userDepartment === currentUserDepartment) {
-            return false
-        }
-        
+    if (!query.trim()) {
+        // Show all eligible users when no query
+        filteredUsers.value = users.value.filter(user => {
+            // Only show users with /DO units
+            if (!user.unit_name || !user.unit_name.endsWith('/DO')) {
+                return false
+            }
+            
+            // Exclude users from the same department as the uploader
+            const userDepartment = user.unit_name.split('/')[0]
+            if (userDepartment === currentUserDepartment) {
+                return false
+            }
+            
+            return true
+        })
+    } else {
         // Filter by search query
-        return user.name.toLowerCase().includes(query.toLowerCase()) ||
-               user.username.toLowerCase().includes(query.toLowerCase()) ||
-               user.email.toLowerCase().includes(query.toLowerCase())
-    })
+        filteredUsers.value = users.value.filter(user => {
+            // Only show users with /DO units
+            if (!user.unit_name || !user.unit_name.endsWith('/DO')) {
+                return false
+            }
+            
+            // Exclude users from the same department as the uploader
+            const userDepartment = user.unit_name.split('/')[0]
+            if (userDepartment === currentUserDepartment) {
+                return false
+            }
+            
+            // Filter by search query
+            return user.name.toLowerCase().includes(query.toLowerCase()) ||
+                   user.username.toLowerCase().includes(query.toLowerCase()) ||
+                   user.email.toLowerCase().includes(query.toLowerCase())
+        })
+    }
     
     showUserSuggestions.value = filteredUsers.value.length > 0
     selectedUserIndex.value = -1
@@ -158,6 +185,14 @@ function handleKeydown(event) {
         showUserSuggestions.value = false
         selectedUserIndex.value = -1
     }
+}
+
+function handleFocus() {
+    // Fetch all users immediately when input is focused
+    fetchUsers()
+    // Show all eligible users initially
+    searchUsers('')
+    showUserSuggestions.value = true
 }
 
 function handleBlur() {
@@ -346,7 +381,7 @@ watch(() => currentUserFromPage.value, (newUser) => {
                   :class="{ 'border-red-500': errors.uploadTo }"
                   @input="searchUsers($event.target.value)"
                   @keydown="handleKeydown"
-                  @focus="showUserSuggestions = true"
+                  @focus="handleFocus"
                   @blur="handleBlur"
                   placeholder="Start typing to search users..."
                 />
@@ -361,7 +396,7 @@ watch(() => currentUserFromPage.value, (newUser) => {
                   >
                     <div class="font-medium">{{ user.name }}</div>
                     <div class="text-sm text-gray-600">{{ user.username }} • {{ user.email }}</div>
-                    <div class="text-xs text-gray-500">{{ user.unit_name }}</div>
+                    <div class="text-xs text-gray-500">{{ user.unit_name }} • Added {{ new Date(user.created_at).toLocaleDateString() }}</div>
                   </div>
                 </div>
                 <p v-if="errors.uploadTo" class="mt-1 text-sm text-red-600">{{ errors.uploadTo }}</p>

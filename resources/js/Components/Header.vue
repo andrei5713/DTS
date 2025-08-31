@@ -9,6 +9,11 @@
                 </div>
             </div>
             <div class="flex items-center space-x-4">
+                <!-- Unit Display -->
+                <div v-if="userUnit" class="flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                    <span>{{ userUnit }}</span>
+                </div>
+                
                 <!-- Role Display -->
                 <div class="flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium" :class="roleDisplayClass">
                     <component :is="roleIcon" class="w-4 h-4" />
@@ -73,15 +78,20 @@ onBeforeUnmount(() => {
 const page = usePage()
 const username = page.props.auth?.user?.username || 'Guest'
 const userRole = page.props.auth?.user?.role
+const userUnit = page.props.auth?.user?.unit?.full_name || null
 
 const roleDisplayText = computed(() => {
   switch (userRole) {
     case 'admin':
       return 'Admin'
+    case 'department':
+      return 'Department Head'
     case 'encoder':
       return 'Encoder'
     case 'viewer':
       return 'Viewer'
+    case 'pending':
+      return 'Pending'
     default:
       return 'Guest'
   }
@@ -91,9 +101,13 @@ const roleIcon = computed(() => {
   switch (userRole) {
     case 'admin':
       return Shield
+    case 'department':
+      return Shield
     case 'encoder':
       return Users
     case 'viewer':
+      return User
+    case 'pending':
       return User
     default:
       return User
@@ -104,10 +118,14 @@ const roleDisplayClass = computed(() => {
   switch (userRole) {
     case 'admin':
       return 'bg-red-100 text-red-800'
+    case 'department':
+      return 'bg-purple-100 text-purple-800'
     case 'encoder':
       return 'bg-blue-100 text-blue-800'
     case 'viewer':
       return 'bg-green-100 text-green-800'
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800'
     default:
       return 'bg-gray-100 text-gray-800'
   }

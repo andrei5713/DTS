@@ -17,6 +17,14 @@
         </div>
       </template>
     </Table>
+
+    <!-- PDF Preview Modal -->
+    <EnhancedPdfViewer 
+      v-if="showPdfModal" 
+      :document="pdfDocument" 
+      :pdf-url="pdfUrl" 
+      @close="closePdfModal" 
+    />
   </div>
 </template>
 
@@ -24,6 +32,7 @@
 import { ref, computed } from 'vue';
 import Table from '@/Components/Table.vue';
 import SearchBar from '@/Components/SearchBar.vue';
+import EnhancedPdfViewer from '@/Components/EnhancedPdfViewer.vue';
 
 // Mock data - replace with actual data from backend
 const rows = ref([
@@ -60,6 +69,9 @@ const rows = ref([
 ]);
 
 const searchQuery = ref('');
+const showPdfModal = ref(false);
+const pdfDocument = ref(null);
+const pdfUrl = ref('');
 
 const columns = [
   { label: 'TRACKING CODE', key: 'trackingCode' },
@@ -98,8 +110,19 @@ const rejectDocument = (document) => {
 };
 
 const viewDocument = (document) => {
-  console.log('Viewing document:', document.trackingCode);
-  // Add view logic here
+  pdfDocument.value = document;
+  if (document.file_path) {
+    pdfUrl.value = `/storage/${document.file_path}`;
+  } else {
+    pdfUrl.value = "";
+  }
+  showPdfModal.value = true;
+};
+
+const closePdfModal = () => {
+  showPdfModal.value = false;
+  pdfUrl.value = "";
+  pdfDocument.value = null;
 };
 
 const approveAll = () => {
