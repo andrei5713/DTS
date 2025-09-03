@@ -145,8 +145,11 @@ async function handleUpload(uploadData) {
       method: 'POST',
       body: formData,
       headers: {
-        'X-CSRF-TOKEN': page.props.csrf_token || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-      }
+        'X-CSRF-TOKEN': page.props.csrf_token || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin'
     });
     
     console.log('Response status:', response.status);

@@ -39,14 +39,35 @@
       <div class="mt-6">
         <Tabs v-model="activeTab" :tabs="departmentHeadTabs">
           <template #default="{ activeTab }">
-            <div v-if="activeTab === 'outgoing'">
-              <Outgoing />
+            <div>
+              <div v-show="activeTab === 'outgoing'">
+                <Outgoing />
+              </div>
+              <div v-show="activeTab === 'incoming'">
+                <Incoming />
+              </div>
+              <div v-show="activeTab === 'archived'">
+                <ArchivedDocuments />
+              </div>
             </div>
-            <div v-else-if="activeTab === 'incoming'">
-              <Incoming />
-            </div>
-            <div v-else-if="activeTab === 'archived'">
-              <ArchivedDocuments />
+          </template>
+        </Tabs>
+      </div>
+    </div>
+    <div v-else-if="userRole === 'viewer'">
+      <div class="mt-6">
+        <Tabs v-model="activeTab" :tabs="departmentHeadTabs">
+          <template #default="{ activeTab }">
+            <div>
+              <div v-show="activeTab === 'outgoing'">
+                <Outgoing />
+              </div>
+              <div v-show="activeTab === 'incoming'">
+                <Incoming />
+              </div>
+              <div v-show="activeTab === 'archived'">
+                <ArchivedDocuments />
+              </div>
             </div>
           </template>
         </Tabs>

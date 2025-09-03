@@ -257,6 +257,7 @@
           <span>Pages: {{ totalPages }}</span>
         </div>
         <div class="flex items-center space-x-3">
+          <a v-if="pdfUrl" :href="pdfUrl" target="_blank" rel="noopener" class="px-4 py-2 text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors">Open in browser</a>
           <button @click="downloadPdf" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">Download</button>
           <button @click="$emit('close')" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors">Close</button>
         </div>

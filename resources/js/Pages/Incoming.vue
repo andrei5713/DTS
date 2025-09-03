@@ -171,6 +171,7 @@ const showForwardModal = ref(false);
 const selectedDocument = ref(null);
 const users = ref([]);
 const filteredUsers = ref([]);
+let searchDebounce = null;
 const showUserSuggestions = ref(false);
 const selectedUserIndex = ref(-1);
 const showNotification = ref(false);
@@ -263,7 +264,10 @@ async function fetchDocuments() {
 
 async function fetchUsers(query = '') {
   try {
-    const response = await fetch(`/api/users?q=${encodeURIComponent(query)}`);
+    const response = await fetch(`/api/users?q=${encodeURIComponent(query)}`, {
+      headers: { 'Accept': 'application/json' },
+      credentials: 'same-origin'
+    });
     const data = await response.json();
     users.value = data;
     filteredUsers.value = data;
@@ -273,36 +277,38 @@ async function fetchUsers(query = '') {
 }
 
 function searchUsers(query) {
-  if (!query.trim()) {
+  const q = query.trim();
+  if (searchDebounce) clearTimeout(searchDebounce);
+
+  if (!q) {
     filteredUsers.value = [];
     showUserSuggestions.value = false;
     return;
   }
-  
-  // Filter users to only show those within the same department, excluding /DO units
-  const currentUserUnit = currentUser.value?.unit?.full_name || '';
-  const currentUserDepartment = currentUserUnit.split('/')[0];
-  
-  filteredUsers.value = users.value.filter(user => {
-    // Only show users within the same department
-    const userDepartment = user.unit?.full_name?.split('/')[0] || '';
-    if (userDepartment !== currentUserDepartment) {
-      return false;
-    }
-    
-    // Exclude users with /DO units
-    if (user.unit?.full_name?.endsWith('/DO')) {
-      return false;
-    }
-    
-    // Filter by search query
-    return user.name.toLowerCase().includes(query.toLowerCase()) ||
-           user.username.toLowerCase().includes(query.toLowerCase()) ||
-           user.email.toLowerCase().includes(query.toLowerCase());
-  });
-  
-  showUserSuggestions.value = filteredUsers.value.length > 0;
-  selectedUserIndex.value = -1;
+
+  // Debounce slightly for rapid typing but keep it snappy
+  searchDebounce = setTimeout(async () => {
+    await fetchUsers(q);
+
+    // Filter users to only show those within the same department, excluding /DO units
+    const currentUserUnit = currentUser.value?.unit?.full_name || '';
+    const currentUserDepartment = currentUserUnit.split('/')[0];
+    const lowerQ = q.toLowerCase();
+
+    filteredUsers.value = users.value.filter(user => {
+      const userDepartment = user.unit_name?.split('/')[0] || user.unit?.full_name?.split('/')[0] || '';
+      if (userDepartment !== currentUserDepartment) return false;
+      if ((user.unit_name || user.unit?.full_name || '').endsWith('/DO')) return false;
+      return (
+        (user.name || '').toLowerCase().includes(lowerQ) ||
+        (user.username || '').toLowerCase().includes(lowerQ) ||
+        (user.email || '').toLowerCase().includes(lowerQ)
+      );
+    });
+
+    showUserSuggestions.value = true;
+    selectedUserIndex.value = -1;
+  }, 100);
 }
 
 function selectUser(user) {
@@ -405,8 +411,11 @@ async function forwardDocument() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
       },
+      credentials: 'same-origin',
       body: JSON.stringify(forwardForm.value)
     });
     
@@ -429,8 +438,11 @@ async function acceptDocument(documentId) {
     const response = await fetch(`/documents/${documentId}/receive`, {
       method: 'POST',
       headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-      }
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin'
     });
     if (response.ok) {
       const data = await response.json();
@@ -460,8 +472,11 @@ async function rejectDocument(documentId) {
     const response = await fetch(`/documents/${documentId}/reject`, {
       method: 'POST',
       headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-      }
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin'
     });
     if (response.ok) {
       await fetchDocuments();

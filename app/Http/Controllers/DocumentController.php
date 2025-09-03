@@ -175,17 +175,36 @@ class DocumentController extends Controller
             ], 403);
         }
 
-        // Update document status to received
+        // Update document status to received for the user who accepted
         $document->update([
             'status' => 'received',
-            'current_recipient_id' => $user->id, // Move to the user who accepted it
+            'current_recipient_id' => $user->id,
         ]);
 
-        // Automatically forward to the intended recipient based on routing
+        // Determine the next recipient (usually the intended upload_to user when DO accepts)
         $nextRecipient = $this->getNextRecipient($document, $user);
-        
+
+        // If a DO accepted and the next recipient is the intended upload_to user,
+        // deliver it directly as received for that user instead of leaving it as forwarded.
+        $currentUserUnit = $user->unit->full_name ?? '';
+        $isDO = str_ends_with($currentUserUnit, '/DO');
+        $intendedRecipient = $document->uploadToUser;
+
+        if ($isDO && $nextRecipient && $intendedRecipient && $nextRecipient->id === $intendedRecipient->id) {
+            $document->update([
+                'status' => 'received',
+                'current_recipient_id' => $intendedRecipient->id,
+                'forward_notes' => 'Automatically delivered to intended recipient after DO acceptance by ' . $user->name,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Document accepted and delivered to ' . $intendedRecipient->name . "'s received documents."
+            ]);
+        }
+
         if ($nextRecipient && $nextRecipient->id !== $user->id) {
-            // Forward the document to the next recipient
+            // Fall back: keep traditional forwarding to the next recipient
             $document->update([
                 'status' => 'forwarded',
                 'current_recipient_id' => $nextRecipient->id,
@@ -196,12 +215,12 @@ class DocumentController extends Controller
                 'success' => true,
                 'message' => 'Document accepted and automatically forwarded to ' . $nextRecipient->name . '.'
             ]);
-        } else {
-            return response()->json([
-                'success' => true,
-                'message' => 'Document accepted successfully. No further forwarding required.'
-            ]);
         }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document accepted successfully. No further forwarding required.'
+        ]);
     }
 
     public function forward(Request $request, Document $document)

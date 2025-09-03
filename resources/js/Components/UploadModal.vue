@@ -58,6 +58,7 @@ const users = ref([])
 const filteredUsers = ref([])
 const showUserSuggestions = ref(false)
 const selectedUserIndex = ref(-1)
+let searchDebounce = null
 
 const statusOptions = [
     { label: 'Simple', days: 3, color: 'blue', value: 'simple' },
@@ -103,8 +104,11 @@ function closeModal() {
 
 async function fetchUsers(query = '') {
     try {
-        // Always fetch all users, query is optional for filtering
-        const response = await fetch(`/api/users${query ? `?q=${encodeURIComponent(query)}` : ''}`)
+        // Always fetch users; include query for backend filtering
+        const response = await fetch(`/api/users${query ? `?q=${encodeURIComponent(query)}` : ''}`, {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        })
         const data = await response.json()
         users.value = data
         filteredUsers.value = data
@@ -114,49 +118,28 @@ async function fetchUsers(query = '') {
 }
 
 function searchUsers(query) {
-    // Filter users to only show those with /DO units, excluding the current user's /DO unit
-    const currentUserUnit = props.currentUser?.unit?.full_name || ''
-    const currentUserDepartment = currentUserUnit.split('/')[0]
-    
-    if (!query.trim()) {
-        // Show all eligible users when no query
+    const q = query.trim().toLowerCase()
+    if (searchDebounce) clearTimeout(searchDebounce)
+
+    // Show suggestions while typing with a very short debounce
+    searchDebounce = setTimeout(async () => {
+        await fetchUsers(q)
+
+        // Match on name, username, email, or unit (case-insensitive)
         filteredUsers.value = users.value.filter(user => {
-            // Only show users with /DO units
-            if (!user.unit_name || !user.unit_name.endsWith('/DO')) {
-                return false
-            }
-            
-            // Exclude users from the same department as the uploader
-            const userDepartment = user.unit_name.split('/')[0]
-            if (userDepartment === currentUserDepartment) {
-                return false
-            }
-            
-            return true
+            const name = (user.name || '').toLowerCase()
+            const username = (user.username || '').toLowerCase()
+            const email = (user.email || '').toLowerCase()
+            const unit = (user.unit_name || '').toLowerCase()
+            if (!q) return true
+            return name.includes(q) || username.includes(q) || email.includes(q) || unit.includes(q)
         })
-    } else {
-        // Filter by search query
-        filteredUsers.value = users.value.filter(user => {
-            // Only show users with /DO units
-            if (!user.unit_name || !user.unit_name.endsWith('/DO')) {
-                return false
-            }
-            
-            // Exclude users from the same department as the uploader
-            const userDepartment = user.unit_name.split('/')[0]
-            if (userDepartment === currentUserDepartment) {
-                return false
-            }
-            
-            // Filter by search query
-            return user.name.toLowerCase().includes(query.toLowerCase()) ||
-                   user.username.toLowerCase().includes(query.toLowerCase()) ||
-                   user.email.toLowerCase().includes(query.toLowerCase())
-        })
-    }
-    
-    showUserSuggestions.value = filteredUsers.value.length > 0
-    selectedUserIndex.value = -1
+
+        // Limit to first 20 for performance
+        filteredUsers.value = filteredUsers.value.slice(0, 20)
+        showUserSuggestions.value = filteredUsers.value.length > 0
+        selectedUserIndex.value = -1
+    }, 100)
 }
 
 function selectUser(user) {
@@ -188,11 +171,12 @@ function handleKeydown(event) {
 }
 
 function handleFocus() {
-    // Fetch all users immediately when input is focused
-    fetchUsers()
-    // Show all eligible users initially
-    searchUsers('')
-    showUserSuggestions.value = true
+    // Fetch and show initial list instantly on focus
+    fetchUsers('').then(() => {
+        filteredUsers.value = users.value.slice(0, 20)
+        showUserSuggestions.value = true
+        selectedUserIndex.value = -1
+    })
 }
 
 function handleBlur() {
