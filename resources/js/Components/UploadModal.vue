@@ -46,6 +46,16 @@ const formData = ref({
 
 const errors = ref({})
 const isUploading = ref(false)
+// Ensure tracking code displays and stores dashes instead of slashes
+const trackingCodeDisplay = computed({
+    get() {
+        return (formData.value.trackingCode || '').replaceAll('/', '-')
+    },
+    set(val) {
+        formData.value.trackingCode = (val || '').replaceAll('/', '-')
+    }
+})
+
 
 const isDocumentTypeOpen = ref(false)
 const isOriginTypeOpen = ref(false)
@@ -317,7 +327,7 @@ watch(() => currentUserFromPage.value, (newUser) => {
               <!-- Tracking Number -->
               <div>
                 <label for="trackingCode" class="block text-sm font-medium text-gray-700 mb-1">Tracking Number *</label>
-                <input id="trackingCode" v-model="formData.trackingCode" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.trackingCode }" />
+                <input id="trackingCode" v-model="trackingCodeDisplay" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.trackingCode }" />
                 <p v-if="errors.trackingCode" class="mt-1 text-sm text-red-600">{{ errors.trackingCode }}</p>
               </div>
               <!-- Document Type -->
