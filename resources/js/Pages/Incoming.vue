@@ -98,21 +98,38 @@
       <div v-if="receivedViewMode === 'table'">
       <Table :columns="receivedColumns" :rows="receivedDocuments">
         <template #ACTIONS="{ row }">
-                      <div class="flex gap-2">
-              <button 
-                @click="viewDocument(row)"
-                class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
-              >
-                View
-              </button>
-              <button 
-                @click="complyDocument(row.id)"
-                class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-300"
-              >
-                Complied
-              </button>
-              <span class="text-green-600 text-sm font-medium">Accepted</span>
-            </div>
+          <div class="flex gap-2">
+            <button 
+              @click="viewDocument(row)"
+              class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+              View
+            </button>
+            <!-- Show Accept button only if DO approved the document -->
+            <button 
+              v-if="row.do_approval_status === 'accepted'"
+              disabled
+              class="bg-green-500 text-white px-3 py-1 rounded-full shadow-sm opacity-50 cursor-not-allowed"
+            >
+              Accepted
+            </button>
+            <!-- Show Respond button only if DO approved the document -->
+            <button 
+              v-if="row.do_approval_status === 'accepted'"
+              @click="openRespondModal(row)"
+              class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            >
+              Respond
+            </button>
+            <!-- Show Complied button for regular received documents -->
+            <button 
+              v-if="row.do_approval_status !== 'accepted'"
+              @click="complyDocument(row.id)"
+              class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-300"
+            >
+              Complied
+            </button>
+          </div>
         </template>
       </Table>
       </div>
@@ -174,7 +191,17 @@
               >
                 View
               </button>
+              <!-- Show Respond button only if DO approved the document -->
               <button 
+                v-if="document.do_approval_status === 'accepted'"
+                @click="openRespondModal(document)"
+                class="flex-1 bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-300"
+              >
+                Respond
+              </button>
+              <!-- Show Complied button for regular received documents -->
+              <button 
+                v-if="document.do_approval_status !== 'accepted'"
                 @click="complyDocument(document.id)"
                 class="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-300"
               >
@@ -366,7 +393,11 @@ const transformedDocuments = computed(() => {
 
 // Separate documents into pending and received with search functionality
 const pendingDocuments = computed(() => {
-  let docs = transformedDocuments.value.filter(doc => doc.status === 'pending');
+  let docs = transformedDocuments.value.filter(doc => {
+    // Only show pending documents that haven't been acted upon by DO
+    return doc.status === 'pending' && 
+           (doc.do_approval_status === 'pending' || !doc.do_approval_status);
+  });
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase();
     docs = docs.filter(doc =>
@@ -379,7 +410,11 @@ const pendingDocuments = computed(() => {
 });
 
 const receivedDocuments = computed(() => {
-  let docs = transformedDocuments.value.filter(doc => doc.status === 'received');
+  let docs = transformedDocuments.value.filter(doc => {
+    // Include documents that are received OR documents that the DO has acted upon
+    return doc.status === 'received' || 
+           (doc.do_approval_status === 'accepted' || doc.do_approval_status === 'rejected');
+  });
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase();
     docs = docs.filter(doc =>

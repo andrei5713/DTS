@@ -33,11 +33,16 @@ class Document extends Model
         'status',
         'current_recipient_id',
         'forward_notes',
+        'do_approval_status',
+        'do_approved_by',
+        'do_approved_at',
+        'do_approval_notes',
     ];
 
     protected $casts = [
         'document_date' => 'date',
         'entry_date' => 'date',
+        'do_approved_at' => 'datetime',
     ];
 
     public function uploadByUser()

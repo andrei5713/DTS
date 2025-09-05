@@ -34,16 +34,24 @@ class DocumentController extends Controller
     public function incoming(Request $request)
     {
         $user = Auth::user();
+        $userUnit = $user->unit->full_name ?? '';
+        $isDO = str_ends_with($userUnit, '/DO');
         $showAll = $request->query('all', false);
 
-        if ($showAll) {
-            // Show all documents where the user is the current recipient
+        if ($isDO) {
+            // For DO users: show documents where they are current recipient OR documents they have acted upon
             $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
-                ->where('current_recipient_id', $user->id)
+                ->where(function($query) use ($user) {
+                    $query->where('current_recipient_id', $user->id)
+                          ->orWhere(function($subQuery) use ($user) {
+                              $subQuery->where('do_approved_by', $user->name)
+                                      ->whereNotNull('do_approved_by');
+                          });
+                })
                 ->latest()
                 ->get();
         } else {
-            // Default: show only documents where the user is the current recipient
+            // For non-DO users: show only documents where they are the current recipient
             $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
                 ->where('current_recipient_id', $user->id)
                 ->latest()
@@ -58,12 +66,28 @@ class DocumentController extends Controller
     public function outgoing()
     {
         $user = Auth::user();
+        $userUnit = $user->unit->full_name ?? '';
+        $isDO = str_ends_with($userUnit, '/DO');
         
-        // Get outgoing documents (uploaded by the current user)
-        $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
-            ->where('upload_by_user_id', $user->id)
-            ->latest()
-            ->get();
+        if ($isDO) {
+            // For DO users: show documents they uploaded OR documents they have acted upon
+            $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
+                ->where(function($query) use ($user) {
+                    $query->where('upload_by_user_id', $user->id)
+                          ->orWhere(function($subQuery) use ($user) {
+                              $subQuery->where('do_approved_by', $user->name)
+                                      ->whereNotNull('do_approved_by');
+                          });
+                })
+                ->latest()
+                ->get();
+        } else {
+            // For non-DO users: show only documents they uploaded
+            $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
+                ->where('upload_by_user_id', $user->id)
+                ->latest()
+                ->get();
+        }
             
         return response()->json([
             'documents' => $documents
@@ -190,52 +214,72 @@ class DocumentController extends Controller
             ], 403);
         }
 
-        // Update document status to received for the user who accepted
-        $document->update([
-            'status' => 'received',
-            'current_recipient_id' => $user->id,
-        ]);
-
-        // Determine the next recipient (usually the intended upload_to user when DO accepts)
-        $nextRecipient = $this->getNextRecipient($document, $user);
-
-        // If a DO accepted and the next recipient is the intended upload_to user,
-        // deliver it directly as received for that user instead of leaving it as forwarded.
+        // Check if this is a DO user accepting the document
         $currentUserUnit = $user->unit->full_name ?? '';
         $isDO = str_ends_with($currentUserUnit, '/DO');
-        $intendedRecipient = $document->uploadToUser;
 
-        if ($isDO && $nextRecipient && $intendedRecipient && $nextRecipient->id === $intendedRecipient->id) {
+        if ($isDO) {
+            // Update DO approval status and keep document in DO's received documents
+            $document->update([
+                'do_approval_status' => 'accepted',
+                'do_approved_by' => $user->name,
+                'do_approved_at' => now(),
+                'status' => 'received',
+                'current_recipient_id' => $user->id, // Keep it with the DO
+            ]);
+
+            // Also create a copy/forward to the intended recipient if different from DO
+            $intendedRecipient = $document->uploadToUser;
+            if ($intendedRecipient && $intendedRecipient->id !== $user->id) {
+                // Create a new document entry for the intended recipient
+                Document::create([
+                    'tracking_code' => $document->tracking_code . '-COPY',
+                    'document_type' => $document->document_type,
+                    'subject' => $document->subject,
+                    'document_date' => $document->document_date,
+                    'entry_date' => $document->entry_date,
+                    'upload_by' => $document->upload_by,
+                    'upload_by_user_id' => $document->upload_by_user_id,
+                    'upload_to' => $document->upload_to,
+                    'upload_to_user_id' => $document->upload_to_user_id,
+                    'originating_office' => $document->originating_office,
+                    'forward_to_department' => $document->forward_to_department,
+                    'origin_type' => $document->origin_type,
+                    'priority' => $document->priority,
+                    'remarks' => $document->remarks,
+                    'routing' => $document->routing,
+                    'file_path' => $document->file_path,
+                    'file_name' => $document->file_name,
+                    'status' => 'received',
+                    'current_recipient_id' => $intendedRecipient->id,
+                    'do_approval_status' => 'accepted',
+                    'do_approved_by' => $user->name,
+                    'do_approved_at' => now(),
+                    'forward_notes' => 'Delivered to intended recipient after DO acceptance by ' . $user->name,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Document accepted and delivered to ' . $intendedRecipient->name . "'s received documents. Document also remains in your received documents."
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Document accepted successfully and remains in your received documents.'
+            ]);
+        } else {
+            // Regular user receiving document (non-DO)
             $document->update([
                 'status' => 'received',
-                'current_recipient_id' => $intendedRecipient->id,
-                'forward_notes' => 'Automatically delivered to intended recipient after DO acceptance by ' . $user->name,
+                'current_recipient_id' => $user->id,
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Document accepted and delivered to ' . $intendedRecipient->name . "'s received documents."
+                'message' => 'Document received successfully.'
             ]);
         }
-
-        if ($nextRecipient && $nextRecipient->id !== $user->id) {
-            // Fall back: keep traditional forwarding to the next recipient
-            $document->update([
-                'status' => 'forwarded',
-                'current_recipient_id' => $nextRecipient->id,
-                'forward_notes' => 'Automatically forwarded after acceptance by ' . $user->name,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Document accepted and automatically forwarded to ' . $nextRecipient->name . '.'
-            ]);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Document accepted successfully. No further forwarding required.'
-        ]);
     }
 
     public function respond(Request $request, Document $document)
@@ -341,9 +385,25 @@ class DocumentController extends Controller
             ], 403);
         }
 
-        $document->update([
-            'status' => 'rejected',
-        ]);
+        // Check if this is a DO user rejecting the document
+        $currentUserUnit = $user->unit->full_name ?? '';
+        $isDO = str_ends_with($currentUserUnit, '/DO');
+
+        if ($isDO) {
+            // Update DO approval status and keep document in DO's received documents
+            $document->update([
+                'do_approval_status' => 'rejected',
+                'do_approved_by' => $user->name,
+                'do_approved_at' => now(),
+                'status' => 'received', // Keep as received so it shows in DO's received documents
+                'current_recipient_id' => $user->id, // Keep it with the DO
+            ]);
+        } else {
+            // Regular user rejecting document (non-DO)
+            $document->update([
+                'status' => 'rejected',
+            ]);
+        }
 
         return response()->json([
             'success' => true,

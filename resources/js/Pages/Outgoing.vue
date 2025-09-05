@@ -51,7 +51,16 @@
       <Table :columns="columns" :rows="documents">
         <template #ACTIONS="{ row }">
           <div class="flex gap-2">
-            <span v-if="row.status === 'pending'" class="text-yellow-600 text-sm">Pending</span>
+            <button 
+              @click="viewDocument(row)"
+              class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+              View
+            </button>
+            <!-- Show DO approval status -->
+            <span v-if="row.do_approval_status === 'accepted'" class="text-green-600 text-sm font-medium">Accepted by DO</span>
+            <span v-else-if="row.do_approval_status === 'rejected'" class="text-red-600 text-sm font-medium">Rejected by DO</span>
+            <span v-else-if="row.status === 'pending'" class="text-yellow-600 text-sm">Pending</span>
             <span v-else-if="row.status === 'received'" class="text-green-600 text-sm">Received</span>
             <span v-else-if="row.status === 'forwarded'" class="text-blue-600 text-sm">Forwarded</span>
             <span v-else-if="row.status === 'rejected'" class="text-red-600 text-sm">Rejected</span>
@@ -75,6 +84,8 @@
           <span 
             :class="[
               'px-2 py-1 text-xs font-medium rounded-full',
+              document.do_approval_status === 'accepted' ? 'bg-green-200 text-green-800' :
+              document.do_approval_status === 'rejected' ? 'bg-red-200 text-red-800' :
               document.status === 'pending' ? 'bg-yellow-200 text-yellow-800' :
               document.status === 'received' ? 'bg-green-200 text-green-800' :
               document.status === 'forwarded' ? 'bg-blue-200 text-blue-800' :
@@ -82,7 +93,9 @@
               'bg-gray-200 text-gray-800'
             ]"
           >
-            {{ document.status }}
+            {{ document.do_approval_status === 'accepted' ? 'Accepted by DO' :
+               document.do_approval_status === 'rejected' ? 'Rejected by DO' :
+               document.status }}
           </span>
         </div>
         
@@ -205,6 +218,15 @@ function getCSRFToken() {
   // If no token found, return empty string
   console.warn('No CSRF token found');
   return '';
+}
+
+function viewDocument(document) {
+  // Open document in new tab or modal
+  if (document.file_path) {
+    window.open(document.file_path, '_blank');
+  } else {
+    alert('No file available for this document');
+  }
 }
 
 async function handleUpload(uploadData) {
