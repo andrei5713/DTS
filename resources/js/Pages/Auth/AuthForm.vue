@@ -64,14 +64,20 @@ const handleAuth = () => {
   <div class="min-h-screen flex items-center justify-center bg-gray-100 p-4">
     <div class="w-full max-w-[1280px] grid grid-cols-1 md:grid-cols-[1.5fr_1fr] gap-6">
       <!-- Left: slideshow from public/images/slideshow -->
-      <div class="bg-white rounded-2xl shadow overflow-hidden">
+      <div class="bg-gray-100 rounded-2xl overflow-hidden">
         <Slideshow />
       </div>
 
       <!-- Right: auth card -->
-      <div class="bg-white rounded-2xl shadow p-6 md:p-8 pt-10 md:pt-14">
-        <div class="flex items-center justify-between mb-6">
-          <div />
+      <div class="relative bg-white rounded-2xl shadow p-6 md:p-8 pt-10 md:pt-14">
+        <!-- DocTrack logo in top left -->
+        <div class="absolute top-4 left-4">
+          <h1 class="text-[20px] font-extrabold tracking-tight">
+            <span class="text-blue-600">Doc</span><span class="text-red-600">Track</span>
+          </h1>
+        </div>
+
+        <div class="flex items-center justify-end mb-6">
           <div class="text-xs text-gray-500">
             <span v-if="currentMode">Don't have an account?</span>
             <span v-else>Already have an account?</span>
@@ -79,11 +85,8 @@ const handleAuth = () => {
           </div>
         </div>
 
-        <div class="mb-4 text-center mt-4 md:mt-6">
-          <h1 class="text-[24px] font-extrabold tracking-tight">
-            <span class="text-blue-600">Doc</span><span class="text-red-600">Track</span>
-          </h1>
-          <p class="text-[12px] text-gray-600 mt-1">Please enter your login details below.</p>
+        <div class="mb-4 text-center mt-8 md:mt-10">
+          <p class="text-[12px] text-gray-600">Please enter your login details below.</p>
         </div>
 
         <form @submit.prevent="handleAuth" class="space-y-4 mt-8 md:mt-10">

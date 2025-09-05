@@ -3,27 +3,113 @@
     <h2 class="text-2xl font-bold mb-2">Outgoing Documents</h2>
     <div class="flex items-center justify-between mb-4">
       <SearchBar v-model="searchQuery" placeholder="Search Outgoing Documents" />
-      <button 
-        v-if="canUpload"
-        class="bg-blue-600 text-white px-4 py-2 rounded" 
-        @click="showUploadModal = true"
-      >
-        Upload Document
-      </button>
-      <div v-else class="text-gray-500 text-sm">
-        Only users from Director's Office units can upload documents.
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-1">
+          <button 
+            @click="viewMode = 'table'"
+            :class="[
+              'p-2 rounded-md transition-colors',
+              viewMode === 'table' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            ]"
+            title="Table View"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0V4a1 1 0 011-1h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1z"></path>
+            </svg>
+          </button>
+          <button 
+            @click="viewMode = 'cards'"
+            :class="[
+              'p-2 rounded-md transition-colors',
+              viewMode === 'cards' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            ]"
+            title="Card View"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+            </svg>
+          </button>
+        </div>
+        <button 
+          v-if="canUpload"
+          class="bg-blue-600 text-white px-4 py-2 rounded" 
+          @click="showUploadModal = true"
+        >
+          Upload Document
+        </button>
+        <div v-else class="text-gray-500 text-sm">
+          Only users from Director's Office units can upload documents.
+        </div>
       </div>
     </div>
-    <Table :columns="columns" :rows="documents">
-      <template #ACTIONS="{ row }">
-        <div class="flex gap-2">
-          <span v-if="row.status === 'pending'" class="text-yellow-600 text-sm">Pending</span>
-          <span v-else-if="row.status === 'received'" class="text-green-600 text-sm">Received</span>
-          <span v-else-if="row.status === 'forwarded'" class="text-blue-600 text-sm">Forwarded</span>
-          <span v-else-if="row.status === 'rejected'" class="text-red-600 text-sm">Rejected</span>
+    <!-- Table View -->
+    <div v-if="viewMode === 'table'">
+      <Table :columns="columns" :rows="documents">
+        <template #ACTIONS="{ row }">
+          <div class="flex gap-2">
+            <span v-if="row.status === 'pending'" class="text-yellow-600 text-sm">Pending</span>
+            <span v-else-if="row.status === 'received'" class="text-green-600 text-sm">Received</span>
+            <span v-else-if="row.status === 'forwarded'" class="text-blue-600 text-sm">Forwarded</span>
+            <span v-else-if="row.status === 'rejected'" class="text-red-600 text-sm">Rejected</span>
+          </div>
+        </template>
+      </Table>
+    </div>
+    
+    <!-- Card View -->
+    <div v-else-if="viewMode === 'cards'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div 
+        v-for="document in documents" 
+        :key="document.id"
+        class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+      >
+        <div class="flex justify-between items-start mb-3">
+          <div class="flex-1">
+            <h4 class="font-semibold text-gray-900 text-sm mb-1">{{ document.subject }}</h4>
+            <p class="text-xs text-gray-600">{{ document.tracking_code }}</p>
+          </div>
+          <span 
+            :class="[
+              'px-2 py-1 text-xs font-medium rounded-full',
+              document.status === 'pending' ? 'bg-yellow-200 text-yellow-800' :
+              document.status === 'received' ? 'bg-green-200 text-green-800' :
+              document.status === 'forwarded' ? 'bg-blue-200 text-blue-800' :
+              document.status === 'rejected' ? 'bg-red-200 text-red-800' :
+              'bg-gray-200 text-gray-800'
+            ]"
+          >
+            {{ document.status }}
+          </span>
         </div>
-      </template>
-    </Table>
+        
+        <div class="space-y-2 mb-4">
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-500">Type:</span>
+            <span class="text-gray-700">{{ document.document_type }}</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-500">To:</span>
+            <span class="text-gray-700">{{ document.upload_to }}</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-500">Office:</span>
+            <span class="text-gray-700">{{ document.originating_office }}</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-500">Priority:</span>
+            <span class="text-gray-700">{{ document.priority }}</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-500">Date:</span>
+            <span class="text-gray-700">{{ document.entry_date }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
     <UploadModal 
       :show="showUploadModal" 
       title="Upload Outgoing Document" 
@@ -48,6 +134,7 @@ const documents = ref([]);
 
 const showUploadModal = ref(false);
 const searchQuery = ref('');
+const viewMode = ref('table');
 const editIndex = ref(null);
 const editFormData = ref(null);
 const units = ref([]);
@@ -102,8 +189,34 @@ async function checkCanUpload() {
   }
 }
 
+// Get CSRF token with fallback
+function getCSRFToken() {
+  // Try page props first
+  if (page.props.csrf_token) {
+    return page.props.csrf_token;
+  }
+  
+  // Fallback to meta tag
+  const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  if (metaToken) {
+    return metaToken;
+  }
+  
+  // If no token found, return empty string
+  console.warn('No CSRF token found');
+  return '';
+}
+
 async function handleUpload(uploadData) {
   try {
+    const csrfToken = getCSRFToken();
+    console.log('CSRF Token for upload:', csrfToken);
+    
+    if (!csrfToken) {
+      alert('CSRF token not found. Please refresh the page and try again.');
+      return;
+    }
+    
     const formData = new FormData();
     
     // Map camelCase field names to snake_case for backend
@@ -145,7 +258,7 @@ async function handleUpload(uploadData) {
       method: 'POST',
       body: formData,
       headers: {
-        'X-CSRF-TOKEN': page.props.csrf_token || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+        'X-CSRF-TOKEN': csrfToken,
         'X-Requested-With': 'XMLHttpRequest',
         'Accept': 'application/json'
       },

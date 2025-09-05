@@ -70,6 +70,21 @@ class DocumentController extends Controller
         ]);
     }
 
+    public function archived()
+    {
+        $user = Auth::user();
+        
+        // Get archived documents - documents that have been completed/archived
+        $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
+            ->where('status', 'archived')
+            ->latest()
+            ->get();
+            
+        return response()->json([
+            'documents' => $documents
+        ]);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -220,6 +235,35 @@ class DocumentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Document accepted successfully. No further forwarding required.'
+        ]);
+    }
+
+    public function respond(Request $request, Document $document)
+    {
+        $user = Auth::user();
+        
+        // Check if user can perform actions on this document
+        if (!$this->canUserPerformAction($document, 'respond')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to respond to this document. Only the DO of the forwarded unit can perform actions.'
+            ], 403);
+        }
+
+        $request->validate([
+            'response_message' => 'required|string|max:1000',
+        ]);
+
+        // Update document with response
+        $document->update([
+            'response_message' => $request->response_message,
+            'responded_by' => $user->name,
+            'responded_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Response sent successfully to ' . $document->uploadByUser->name . '.'
         ]);
     }
 

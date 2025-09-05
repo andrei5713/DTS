@@ -30,10 +30,10 @@
             </button>
             <button 
               v-if="row.current_recipient_id === currentUser?.id && canPerformActions(row)"
-              @click="openForwardModal(row)"
-              class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-yellow-300"
+              @click="openRespondModal(row)"
+              class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-300"
             >
-              Forward
+              Respond
             </button>
             <button 
               v-if="row.current_recipient_id === currentUser?.id && canPerformActions(row)"
@@ -57,81 +57,217 @@
     <!-- Received Documents Table -->
     <div class="bg-white rounded-lg shadow">
       <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
         <h3 class="text-lg font-medium text-gray-900">Received Documents</h3>
         <p class="text-sm text-gray-600 mt-1">Documents you have accepted</p>
+          </div>
+          <div class="flex items-center space-x-1">
+            <button 
+              @click="receivedViewMode = 'table'"
+              :class="[
+                'p-2 rounded-md transition-colors',
+                receivedViewMode === 'table' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              ]"
+              title="Table View"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0V4a1 1 0 011-1h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1z"></path>
+              </svg>
+            </button>
+            <button 
+              @click="receivedViewMode = 'cards'"
+              :class="[
+                'p-2 rounded-md transition-colors',
+                receivedViewMode === 'cards' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              ]"
+              title="Card View"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
+      <!-- Table View -->
+      <div v-if="receivedViewMode === 'table'">
       <Table :columns="receivedColumns" :rows="receivedDocuments">
         <template #ACTIONS="{ row }">
-          <div class="flex gap-2">
-            <button 
-              @click="viewDocument(row)"
-              class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            >
-              View
-            </button>
-            <span class="text-green-600 text-sm font-medium">Accepted</span>
-          </div>
+                      <div class="flex gap-2">
+              <button 
+                @click="viewDocument(row)"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              >
+                View
+              </button>
+              <button 
+                @click="complyDocument(row.id)"
+                class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-300"
+              >
+                Complied
+              </button>
+              <span class="text-green-600 text-sm font-medium">Accepted</span>
+            </div>
         </template>
       </Table>
-      <div v-if="receivedDocuments.length === 0" class="px-6 py-4 text-center text-sm text-gray-500">
+      </div>
+      
+      <!-- Card View -->
+      <div v-else-if="receivedViewMode === 'cards'" class="p-6">
+        <div v-if="receivedDocuments.length === 0" class="text-center py-12">
+          <div class="text-gray-400 mb-4">
+            <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">No received documents</h3>
+          <p class="text-sm text-gray-500">Documents you accept will appear here.</p>
+        </div>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div 
+            v-for="document in receivedDocuments" 
+            :key="document.id"
+            class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+          >
+            <div class="flex justify-between items-start mb-3">
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900 text-sm mb-1">{{ document.subject }}</h4>
+                <p class="text-xs text-gray-600">{{ document.tracking_code }}</p>
+              </div>
+              <span class="px-2 py-1 text-xs font-medium bg-green-200 text-green-800 rounded-full">
+                Accepted
+              </span>
+            </div>
+            
+            <div class="space-y-2 mb-4">
+              <div class="flex justify-between text-xs">
+                <span class="text-gray-500">Type:</span>
+                <span class="text-gray-700">{{ document.document_type }}</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-gray-500">From:</span>
+                <span class="text-gray-700">{{ document.upload_by }}</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-gray-500">To:</span>
+                <span class="text-gray-700">{{ document.upload_to }}</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-gray-500">Office:</span>
+                <span class="text-gray-700">{{ document.originating_office }}</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-gray-500">Priority:</span>
+                <span class="text-gray-700">{{ document.priority }}</span>
+              </div>
+            </div>
+            
+            <div class="flex gap-2">
+              <button 
+                @click="viewDocument(document)"
+                class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              >
+                View
+              </button>
+              <button 
+                @click="complyDocument(document.id)"
+                class="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-300"
+              >
+                Complied
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div v-if="receivedViewMode === 'table' && receivedDocuments.length === 0" class="px-6 py-4 text-center text-sm text-gray-500">
         No received documents
       </div>
     </div>
 
-    <!-- Forward Modal -->
-    <div v-if="showForwardModal" class="fixed inset-0 z-50 overflow-y-auto">
-      <div class="fixed inset-0 bg-black bg-opacity-50" @click="showForwardModal = false"></div>
+    <!-- Respond Modal -->
+    <div v-if="showRespondModal" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="fixed inset-0 bg-black bg-opacity-50" @click="showRespondModal = false"></div>
       <div class="flex min-h-full items-center justify-center p-4">
-        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full">
           <div class="px-6 py-4 border-b">
-            <h3 class="text-lg font-semibold text-gray-900">Forward Document</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Respond to Document</h3>
           </div>
-          <form @submit.prevent="forwardDocument" class="p-6 space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Forward To *</label>
+          <div class="p-6">
+            <!-- Document Preview (same as view modal) -->
+            <div class="mb-6">
+              <h4 class="text-md font-medium text-gray-900 mb-4">Document Details</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                  <input 
+                    :value="respondDocument?.subject" 
+                    readonly 
+                    class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700"
+                  />
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Document Type</label>
+                  <input 
+                    :value="respondDocument?.document_type" 
+                    readonly 
+                    class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700"
+                  />
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                  <input 
+                    :value="respondDocument?.priority" 
+                    readonly 
+                    class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700"
+                  />
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <input 
-                v-model="forwardForm.forward_to_user" 
-                type="text" 
-                required
-                @input="searchUsers($event.target.value)"
-                @keydown="handleKeydown"
-                @focus="showUserSuggestions = true"
-                @blur="handleBlur"
-                placeholder="Start typing to search users..."
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <!-- User suggestions dropdown -->
-              <div v-if="showUserSuggestions && filteredUsers.length > 0" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                <div 
-                  v-for="(user, index) in filteredUsers" 
-                  :key="user.id"
-                  @click="selectUser(user)"
-                  class="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                  :class="{ 'bg-blue-100': index === selectedUserIndex }"
-                >
-                  <div class="font-medium">{{ user.name }}</div>
-                  <div class="text-sm text-gray-600">{{ user.username }} • {{ user.email }}</div>
+                    :value="respondDocument?.status" 
+                    readonly 
+                    class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700"
+                  />
                 </div>
               </div>
             </div>
+
+            <!-- Respond Form -->
+            <form @submit.prevent="submitResponse" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Respond To *</label>
+                <input 
+                  :value="`${respondDocument?.upload_by_user?.name || 'Unknown'} - ${respondDocument?.upload_by_user?.unit?.full_name || 'No Unit'}`"
+                  readonly
+                  class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700"
+                />
+            </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Response Message *</label>
               <textarea 
-                v-model="forwardForm.forward_notes" 
-                rows="3"
+                  v-model="respondForm.response_message" 
+                  rows="4"
+                  required
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Add any notes about forwarding this document..."
+                  placeholder="Type your response message here..."
               ></textarea>
             </div>
             <div class="flex justify-end space-x-3">
-              <button type="button" @click="showForwardModal = false" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
+                <button type="button" @click="showRespondModal = false" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
                 Cancel
               </button>
-              <button type="submit" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">
-                Forward Document
+                <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">
+                  Send Response
               </button>
             </div>
           </form>
+          </div>
         </div>
       </div>
     </div>
@@ -165,22 +301,38 @@ import Notification from '@/Components/Notification.vue';
 const page = usePage();
 const currentUser = computed(() => page.props.auth?.user);
 
+// Get CSRF token with fallback
+function getCSRFToken() {
+  // Try page props first
+  if (page.props.csrf_token) {
+    return page.props.csrf_token;
+  }
+  
+  // Fallback to meta tag
+  const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  if (metaToken) {
+    return metaToken;
+  }
+  
+  // If no token found, return empty string
+  console.warn('No CSRF token found');
+  return '';
+}
+
+
 const documents = ref([]);
 const searchQuery = ref('');
-const showForwardModal = ref(false);
-const selectedDocument = ref(null);
-const users = ref([]);
-const filteredUsers = ref([]);
-let searchDebounce = null;
-const showUserSuggestions = ref(false);
-const selectedUserIndex = ref(-1);
+const receivedViewMode = ref('table');
+const showRespondModal = ref(false);
+const respondDocument = ref(null);
+const acceptingId = ref(null);
+const rejectingId = ref(null);
 const showNotification = ref(false);
 const notificationMessage = ref('');
 const notificationType = ref('info');
 
-const forwardForm = ref({
-  forward_to_user: '',
-  forward_notes: ''
+const respondForm = ref({
+  response_message: ''
 });
 
 const approvalColumns = [
@@ -262,96 +414,14 @@ async function fetchDocuments() {
   }
 }
 
-async function fetchUsers(query = '') {
-  try {
-    const response = await fetch(`/api/users?q=${encodeURIComponent(query)}`, {
-      headers: { 'Accept': 'application/json' },
-      credentials: 'same-origin'
-    });
-    const data = await response.json();
-    users.value = data;
-    filteredUsers.value = data;
-  } catch (error) {
-    console.error('Error fetching users:', error);
-  }
+
+
+
+function openRespondModal(document) {
+  respondDocument.value = document;
+  showRespondModal.value = true;
+  respondForm.value.response_message = '';
 }
-
-function searchUsers(query) {
-  const q = query.trim();
-  if (searchDebounce) clearTimeout(searchDebounce);
-
-  if (!q) {
-    filteredUsers.value = [];
-    showUserSuggestions.value = false;
-    return;
-  }
-
-  // Debounce slightly for rapid typing but keep it snappy
-  searchDebounce = setTimeout(async () => {
-    await fetchUsers(q);
-
-    // Filter users to only show those within the same department, excluding /DO units
-    const currentUserUnit = currentUser.value?.unit?.full_name || '';
-    const currentUserDepartment = currentUserUnit.split('/')[0];
-    const lowerQ = q.toLowerCase();
-
-    filteredUsers.value = users.value.filter(user => {
-      const userDepartment = user.unit_name?.split('/')[0] || user.unit?.full_name?.split('/')[0] || '';
-      if (userDepartment !== currentUserDepartment) return false;
-      if ((user.unit_name || user.unit?.full_name || '').endsWith('/DO')) return false;
-      return (
-        (user.name || '').toLowerCase().includes(lowerQ) ||
-        (user.username || '').toLowerCase().includes(lowerQ) ||
-        (user.email || '').toLowerCase().includes(lowerQ)
-      );
-    });
-
-    showUserSuggestions.value = true;
-    selectedUserIndex.value = -1;
-  }, 100);
-}
-
-function selectUser(user) {
-  forwardForm.value.forward_to_user = user.name;
-  showUserSuggestions.value = false;
-  selectedUserIndex.value = -1;
-}
-
-function handleKeydown(event) {
-  if (!showUserSuggestions.value) return
-  
-  if (event.key === 'ArrowDown') {
-    event.preventDefault();
-    selectedUserIndex.value = Math.min(selectedUserIndex.value + 1, filteredUsers.value.length - 1);
-  } else if (event.key === 'ArrowUp') {
-    event.preventDefault();
-    selectedUserIndex.value = Math.max(selectedUserIndex.value - 1, -1);
-  } else if (event.key === 'Enter') {
-    event.preventDefault();
-    if (selectedUserIndex.value >= 0 && filteredUsers.value[selectedUserIndex.value]) {
-      selectUser(filteredUsers.value[selectedUserIndex.value]);
-    }
-  } else if (event.key === 'Escape') {
-    showUserSuggestions.value = false;
-    selectedUserIndex.value = -1;
-  }
-}
-
-function handleBlur() {
-  setTimeout(() => {
-    showUserSuggestions.value = false;
-    selectedUserIndex.value = -1;
-  }, 200);
-}
-
-function openForwardModal(document) {
-  selectedDocument.value = document;
-  showForwardModal.value = true;
-  fetchUsers();
-}
-
-const acceptingId = ref(null);
-const rejectingId = ref(null);
 const showPdfModal = ref(false);
 const pdfDocument = ref(null);
 const pdfUrl = ref("");
@@ -388,6 +458,12 @@ function closePdfModal() {
   pdfDocument.value = null;
 }
 
+function complyDocument(documentId) {
+  // TODO: Implement comply functionality
+  console.log('Comply document:', documentId);
+  alert('Comply functionality will be implemented soon.');
+}
+
 function showNotificationMessage(message, type = 'info') {
   notificationMessage.value = message;
   notificationType.value = type;
@@ -405,40 +481,59 @@ function viewDocument(document) {
   showPdfModal.value = true;
 }
 
-async function forwardDocument() {
+async function submitResponse() {
   try {
-    const response = await fetch(`/documents/${selectedDocument.value.id}/forward`, {
+    const csrfToken = getCSRFToken();
+    console.log('CSRF Token for respond:', csrfToken);
+    
+    if (!csrfToken) {
+      showNotificationMessage('CSRF token not found. Please refresh the page and try again.', 'error');
+      return;
+    }
+    
+    const response = await fetch(`/documents/${respondDocument.value.id}/respond`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        'X-CSRF-TOKEN': csrfToken,
         'X-Requested-With': 'XMLHttpRequest',
         'Accept': 'application/json'
       },
       credentials: 'same-origin',
-      body: JSON.stringify(forwardForm.value)
+      body: JSON.stringify(respondForm.value)
     });
     
     if (response.ok) {
-      showForwardModal.value = false;
-      forwardForm.value = { forward_to_user: '', forward_notes: '' };
+      const data = await response.json();
+      showRespondModal.value = false;
+      respondForm.value.response_message = '';
+      showNotificationMessage(data.message || 'Response sent successfully', 'success');
       await fetchDocuments(); // Refresh the documents list
     } else {
-      alert('Error forwarding document');
+      const errorData = await response.json().catch(() => ({}));
+      showNotificationMessage(errorData.message || 'Error sending response', 'error');
     }
   } catch (error) {
-    console.error('Error forwarding document:', error);
-    alert('Error forwarding document');
+    console.error('Error sending response:', error);
+    showNotificationMessage('Error sending response. Please try again.', 'error');
   }
 }
 
 async function acceptDocument(documentId) {
   acceptingId.value = documentId;
   try {
+    const csrfToken = getCSRFToken();
+    console.log('CSRF Token for accept:', csrfToken);
+    
+    if (!csrfToken) {
+      showNotificationMessage('CSRF token not found. Please refresh the page and try again.', 'error');
+      return;
+    }
+    
     const response = await fetch(`/documents/${documentId}/receive`, {
       method: 'POST',
       headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        'X-CSRF-TOKEN': csrfToken,
         'X-Requested-With': 'XMLHttpRequest',
         'Accept': 'application/json'
       },
@@ -469,10 +564,18 @@ async function rejectDocument(documentId) {
   }
   rejectingId.value = documentId;
   try {
+    const csrfToken = getCSRFToken();
+    console.log('CSRF Token for reject:', csrfToken);
+    
+    if (!csrfToken) {
+      showNotificationMessage('CSRF token not found. Please refresh the page and try again.', 'error');
+      return;
+    }
+    
     const response = await fetch(`/documents/${documentId}/reject`, {
       method: 'POST',
       headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        'X-CSRF-TOKEN': csrfToken,
         'X-Requested-With': 'XMLHttpRequest',
         'Accept': 'application/json'
       },
