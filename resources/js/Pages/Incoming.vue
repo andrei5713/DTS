@@ -111,6 +111,13 @@
               >
                 Complied
               </button>
+              <button 
+                @click="archiveDocument(row.id)"
+                class="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                title="Archive Document"
+              >
+                <Archive class="w-4 h-4" />
+              </button>
               <span class="text-green-600 text-sm font-medium">Accepted</span>
             </div>
         </template>
@@ -179,6 +186,13 @@
                 class="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-300"
               >
                 Complied
+              </button>
+              <button 
+                @click="archiveDocument(document.id)"
+                class="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-md transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                title="Archive Document"
+              >
+                <Archive class="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -293,6 +307,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { Archive } from 'lucide-vue-next';
 import Table from '@/Components/Table.vue';
 import SearchBar from '@/Components/SearchBar.vue';
 import EnhancedPdfViewer from '@/Components/EnhancedPdfViewer.vue';
@@ -433,9 +448,10 @@ function canPerformActions(document) {
   // User must be the current recipient
   if (document.current_recipient_id !== currentUser.value.id) return false;
   
-  // User must be from a DO unit
+  // For comply action, allow all users
+  // For other actions, check if user is from a DO unit
   const userUnit = currentUser.value.unit?.full_name || '';
-  if (!userUnit.endsWith('/DO')) return false;
+  const isDO = userUnit.endsWith('/DO');
   
   // Debug logging
   console.log('canPerformActions check:', {
@@ -444,11 +460,11 @@ function canPerformActions(document) {
     documentCurrentRecipientId: document.current_recipient_id,
     userUnit: userUnit,
     isCurrentRecipient: document.current_recipient_id === currentUser.value.id,
-    isDO: userUnit.endsWith('/DO')
+    isDO: isDO
   });
   
-  // Simplified logic: If user is current recipient and is from a DO unit, allow actions
-  // This matches the backend logic and ensures DO users can see and act on documents
+  // Allow all current recipients to perform actions (especially comply)
+  // This matches the updated backend logic
   return true;
 }
 
@@ -458,10 +474,100 @@ function closePdfModal() {
   pdfDocument.value = null;
 }
 
-function complyDocument(documentId) {
-  // TODO: Implement comply functionality
-  console.log('Comply document:', documentId);
-  alert('Comply functionality will be implemented soon.');
+async function complyDocument(documentId) {
+  if (!confirm('Are you sure you want to mark this document as complied? This will move it to the archived section.')) {
+    return;
+  }
+  
+  try {
+    const csrfToken = getCSRFToken();
+    console.log('CSRF Token for comply:', csrfToken);
+    
+    if (!csrfToken) {
+      showNotificationMessage('CSRF token not found. Please refresh the page and try again.', 'error');
+      return;
+    }
+    
+    const response = await fetch(`/documents/${documentId}/comply`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        compliance_notes: 'Document marked as complied by user action'
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      showNotificationMessage(data.message || 'Document marked as complied and moved to archived', 'success');
+      await fetchDocuments(); // Refresh the documents list
+      
+      // Also refresh archived documents if we're on that tab
+      if (window.location.hash === '#archived' || document.querySelector('[data-archived-documents]')) {
+        // Trigger a custom event to refresh archived documents
+        window.dispatchEvent(new CustomEvent('refreshArchivedDocuments'));
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      showNotificationMessage(errorData.message || 'Error marking document as complied', 'error');
+    }
+  } catch (error) {
+    console.error('Error complying with document:', error);
+    showNotificationMessage('Error marking document as complied. Please try again.', 'error');
+  }
+}
+
+async function archiveDocument(documentId) {
+  if (!confirm('Are you sure you want to archive this document? This will move it to the archived section.')) {
+    return;
+  }
+  
+  try {
+    const csrfToken = getCSRFToken();
+    console.log('CSRF Token for archive:', csrfToken);
+    
+    if (!csrfToken) {
+      showNotificationMessage('CSRF token not found. Please refresh the page and try again.', 'error');
+      return;
+    }
+    
+    const response = await fetch(`/documents/${documentId}/archive`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        archive_notes: 'Document archived by user action'
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      showNotificationMessage(data.message || 'Document archived successfully', 'success');
+      await fetchDocuments(); // Refresh the documents list
+      
+      // Also refresh archived documents if we're on that tab
+      if (window.location.hash === '#archived' || document.querySelector('[data-archived-documents]')) {
+        // Trigger a custom event to refresh archived documents
+        window.dispatchEvent(new CustomEvent('refreshArchivedDocuments'));
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      showNotificationMessage(errorData.message || 'Error archiving document', 'error');
+    }
+  } catch (error) {
+    console.error('Error archiving document:', error);
+    showNotificationMessage('Error archiving document. Please try again.', 'error');
+  }
 }
 
 function showNotificationMessage(message, type = 'info') {
@@ -601,9 +707,13 @@ onMounted(() => {
   fetchDocuments();
   // Poll every 5 seconds for near-instant updates
   pollTimer = setInterval(fetchDocuments, 5000);
+  
+  // Listen for custom refresh event from unarchived documents
+  window.addEventListener('refreshIncomingDocuments', fetchDocuments);
 });
 
 onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer);
+  window.removeEventListener('refreshIncomingDocuments', fetchDocuments);
 });
 </script> 

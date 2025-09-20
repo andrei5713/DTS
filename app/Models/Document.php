@@ -33,6 +33,17 @@ class Document extends Model
         'status',
         'current_recipient_id',
         'forward_notes',
+        'complied_by',
+        'complied_at',
+        'compliance_notes',
+        'archived_by',
+        'archived_at',
+        'archive_notes',
+        'unarchived_by',
+        'unarchived_at',
+        'unarchive_notes',
+        'accepted_by_do_id',
+        'accepted_by_do_at',
     ];
 
     protected $casts = [
@@ -53,6 +64,11 @@ class Document extends Model
     public function currentRecipient()
     {
         return $this->belongsTo(User::class, 'current_recipient_id');
+    }
+
+    public function acceptedByDo()
+    {
+        return $this->belongsTo(User::class, 'accepted_by_do_id');
     }
 
     public function canUpload()

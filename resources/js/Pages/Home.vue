@@ -47,7 +47,7 @@
                 <Incoming />
               </div>
               <div v-show="activeTab === 'archived'">
-                <ArchivedDocuments />
+                <ArchivedDocuments :key="activeTab" />
               </div>
             </div>
           </template>
@@ -66,7 +66,7 @@
                 <Incoming />
               </div>
               <div v-show="activeTab === 'archived'">
-                <ArchivedDocuments />
+                <ArchivedDocuments :key="activeTab" />
               </div>
             </div>
           </template>

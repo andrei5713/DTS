@@ -1,9 +1,16 @@
 <template>
-  <div>
+  <div data-archived-documents>
     <h2 class="text-2xl font-bold mb-2">Archived Documents</h2>
     <div class="flex items-center justify-between mb-4">
       <SearchBar v-model="searchQuery" placeholder="Search archived documents..." />
       <div class="flex items-center space-x-1">
+        <button 
+          @click="fetchDocuments"
+          class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-300"
+          title="Refresh Archived Documents"
+        >
+          Refresh
+        </button>
         <button 
           @click="viewMode = 'table'"
           :class="[
@@ -58,6 +65,13 @@
                 class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-gray-300"
               >
                 Download
+              </button>
+              <button 
+                @click="unarchiveDocument(row.id)"
+                class="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-300"
+                title="Unarchive Document"
+              >
+                <ArchiveRestore class="w-4 h-4" />
               </button>
             </div>
           </template>
@@ -127,6 +141,13 @@
               >
                 Download
               </button>
+              <button 
+                @click="unarchiveDocument(document.id)"
+                class="bg-green-500 hover:bg-green-600 text-white p-2 rounded-md transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-300"
+                title="Unarchive Document"
+              >
+                <ArchiveRestore class="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
@@ -154,8 +175,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { ArchiveRestore } from 'lucide-vue-next';
 import Table from '@/Components/Table.vue';
 import SearchBar from '@/Components/SearchBar.vue';
 import EnhancedPdfViewer from '@/Components/EnhancedPdfViewer.vue';
@@ -225,6 +247,12 @@ async function fetchDocuments() {
       headers: { 'Accept': 'application/json' },
       credentials: 'same-origin'
     });
+    
+    if (!response.ok) {
+      console.error('Failed to fetch archived documents:', response.status, response.statusText);
+      return;
+    }
+    
     const data = await response.json();
     documents.value = data.documents || [];
   } catch (error) {
@@ -253,6 +281,50 @@ function downloadDocument(document) {
   }
 }
 
+async function unarchiveDocument(documentId) {
+  if (!confirm('Are you sure you want to unarchive this document? This will move it back to the incoming section.')) {
+    return;
+  }
+  
+  try {
+    const csrfToken = getCSRFToken();
+    console.log('CSRF Token for unarchive:', csrfToken);
+    
+    if (!csrfToken) {
+      console.error('CSRF token not found');
+      return;
+    }
+    
+    const response = await fetch(`/documents/${documentId}/unarchive`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        unarchive_notes: 'Document unarchived by user action'
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Document unarchived successfully:', data.message);
+      await fetchDocuments(); // Refresh the documents list
+      
+      // Trigger a custom event to refresh incoming documents
+      window.dispatchEvent(new CustomEvent('refreshIncomingDocuments'));
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error unarchiving document:', errorData.message);
+    }
+  } catch (error) {
+    console.error('Error unarchiving document:', error);
+  }
+}
+
 function closePdfModal() {
   showPdfModal.value = false;
   pdfDocument.value = null;
@@ -261,5 +333,28 @@ function closePdfModal() {
 
 onMounted(() => {
   fetchDocuments();
+  
+  // Listen for custom refresh event
+  window.addEventListener('refreshArchivedDocuments', fetchDocuments);
+  
+  // Watch for visibility changes to refresh data
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        fetchDocuments();
+      }
+    });
+  });
+  
+  // Observe the component root
+  const componentRoot = document.querySelector('[data-archived-documents]');
+  if (componentRoot) {
+    observer.observe(componentRoot);
+  }
+});
+
+// Clean up event listener
+onUnmounted(() => {
+  window.removeEventListener('refreshArchivedDocuments', fetchDocuments);
 });
 </script>
