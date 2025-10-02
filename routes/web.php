@@ -94,7 +94,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/documents/{document}', [DocumentController::class, 'show'])->name('api.documents.show');
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::post('/documents/{document}/receive', [DocumentController::class, 'receive'])->name('documents.receive');
-    Route::post('/documents/{document}/respond', [DocumentController::class, 'respond'])->name('documents.respond');
+    Route::get('/documents/{document}/related', [DocumentController::class, 'getRelatedDocuments'])->name('documents.related');
+    Route::post('/documents/{document}/forward', [DocumentController::class, 'forward'])->name('documents.forward');
     Route::post('/documents/{document}/reject', [DocumentController::class, 'reject'])->name('documents.reject');
     Route::post('/documents/{document}/comply', [DocumentController::class, 'comply'])->name('documents.comply');
     Route::post('/documents/{document}/archive', [DocumentController::class, 'archive'])->name('documents.archive');

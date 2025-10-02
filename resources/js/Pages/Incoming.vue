@@ -30,14 +30,7 @@
             </button>
             <button 
               v-if="row.current_recipient_id === currentUser?.id && canPerformActions(row)"
-              @click="openRespondModal(row)"
-              class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-300"
-            >
-              Respond
-            </button>
-            <button 
-              v-if="row.current_recipient_id === currentUser?.id && canPerformActions(row)"
-              @click="rejectDocument(row.id)"
+              @click="openRejectModal(row)"
               :disabled="rejectingId === row.id"
               class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50"
             >
@@ -105,12 +98,20 @@
               >
                 View
               </button>
-              <button 
-                @click="complyDocument(row.id)"
-                class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-300"
-              >
-                Complied
-              </button>
+          <button 
+            v-if="(currentUser?.unit?.full_name || '').endsWith('/DO')"
+            @click="openForwardModal(row)"
+            class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-300"
+          >
+            Forward
+          </button>
+          <button 
+            v-if="(currentUser?.unit?.full_name || '').endsWith('/DO')"
+            @click="complyDocument(row.id)"
+            class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-300"
+          >
+            Complied
+          </button>
               <button 
                 @click="archiveDocument(row.id)"
                 class="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-300"
@@ -157,11 +158,11 @@
                 <span class="text-gray-700">{{ document.document_type }}</span>
               </div>
               <div class="flex justify-between text-xs">
-                <span class="text-gray-500">From:</span>
+                <span class="text-gray-500">Uploaded By:</span>
                 <span class="text-gray-700">{{ document.upload_by }}</span>
               </div>
               <div class="flex justify-between text-xs">
-                <span class="text-gray-500">To:</span>
+                <span class="text-gray-500">Sent To:</span>
                 <span class="text-gray-700">{{ document.upload_to }}</span>
               </div>
               <div class="flex justify-between text-xs">
@@ -204,88 +205,6 @@
       </div>
     </div>
 
-    <!-- Respond Modal -->
-    <div v-if="showRespondModal" class="fixed inset-0 z-50 overflow-y-auto">
-      <div class="fixed inset-0 bg-black bg-opacity-50" @click="showRespondModal = false"></div>
-      <div class="flex min-h-full items-center justify-center p-4">
-        <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full">
-          <div class="px-6 py-4 border-b">
-            <h3 class="text-lg font-semibold text-gray-900">Respond to Document</h3>
-          </div>
-          <div class="p-6">
-            <!-- Document Preview (same as view modal) -->
-            <div class="mb-6">
-              <h4 class="text-md font-medium text-gray-900 mb-4">Document Details</h4>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-gray-50 p-4 rounded-lg">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-                  <input 
-                    :value="respondDocument?.subject" 
-                    readonly 
-                    class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700"
-                  />
-                </div>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Document Type</label>
-                  <input 
-                    :value="respondDocument?.document_type" 
-                    readonly 
-                    class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700"
-                  />
-                </div>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                  <input 
-                    :value="respondDocument?.priority" 
-                    readonly 
-                    class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700"
-                  />
-                </div>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-              <input 
-                    :value="respondDocument?.status" 
-                    readonly 
-                    class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Respond Form -->
-            <form @submit.prevent="submitResponse" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Respond To *</label>
-                <input 
-                  :value="`${respondDocument?.upload_by_user?.name || 'Unknown'} - ${respondDocument?.upload_by_user?.unit?.full_name || 'No Unit'}`"
-                  readonly
-                  class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700"
-                />
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Response Message *</label>
-              <textarea 
-                  v-model="respondForm.response_message" 
-                  rows="4"
-                  required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Type your response message here..."
-              ></textarea>
-            </div>
-            <div class="flex justify-end space-x-3">
-                <button type="button" @click="showRespondModal = false" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
-                Cancel
-              </button>
-                <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">
-                  Send Response
-              </button>
-            </div>
-          </form>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- PDF Preview Modal -->
     <EnhancedPdfViewer 
       v-if="showPdfModal" 
@@ -301,6 +220,89 @@
       :type="notificationType"
       @close="showNotification = false"
     />
+    
+    <!-- Forward Modal -->
+    <div v-if="showForwardModal" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="fixed inset-0 bg-black bg-opacity-50" @click="showForwardModal = false"></div>
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-xl w-full">
+          <div class="px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">Forward within {{ (currentUser?.unit?.full_name || '').split('/')[0] }}</h3>
+          </div>
+          <div class="p-6 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Your Unit</label>
+              <input :value="currentUser?.unit?.full_name || 'N/A'" readonly class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Search users in your unit</label>
+              <input v-model="forwardSearch" @input="fetchSameUnitUsers" type="text" placeholder="Search by name, username or email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+            <div class="max-h-60 overflow-y-auto border rounded-md">
+              <div 
+                v-for="user in forwardCandidates" 
+                :key="user.id"
+                class="flex items-start justify-between px-3 py-2 border-b last:border-b-0"
+              >
+                <div>
+                  <div class="font-medium text-sm">{{ user.name }}</div>
+                  <div class="text-xs text-gray-600">{{ user.username }} • {{ user.email }}</div>
+                  <div class="text-xs text-gray-500">{{ user.unit_name }}</div>
+                </div>
+                <div>
+                  <input type="checkbox" :value="user" v-model="forwardSelected" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="px-6 py-4 border-t flex justify-end space-x-3">
+            <button type="button" @click="showForwardModal = false" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">Cancel</button>
+            <button type="button" @click="sendForward" :disabled="forwardSending || forwardSelected.length === 0" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md disabled:opacity-50">{{ forwardSending ? 'Sending...' : 'Send' }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div v-if="showRejectModal" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="fixed inset-0 bg-black bg-opacity-50" @click="showRejectModal = false"></div>
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-lg w-full">
+          <div class="px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">Reject Document</h3>
+          </div>
+          <div class="p-6">
+            <div class="mb-4">
+              <h4 class="text-md font-medium text-gray-900 mb-2">Document: {{ rejectDocument?.subject }}</h4>
+              <p class="text-sm text-gray-600">Please provide a reason for rejecting this document.</p>
+            </div>
+            <div class="mb-6">
+              <label for="rejection_reason" class="block text-sm font-medium text-gray-700 mb-2">
+                Rejection Reason <span class="text-red-500">*</span>
+              </label>
+              <textarea
+                id="rejection_reason"
+                v-model="rejectForm.rejection_reason"
+                rows="4"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="Please explain why this document is being rejected..."
+                required
+              ></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+              <button type="button" @click="showRejectModal = false" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
+                Cancel
+              </button>
+              <button type="button" @click="submitRejection" :disabled="!rejectForm.rejection_reason.trim() || rejectSending" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50">
+                {{ rejectSending ? 'Rejecting...' : 'Reject Document' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
   </div>
 </template>
 
@@ -338,21 +340,35 @@ function getCSRFToken() {
 const documents = ref([]);
 const searchQuery = ref('');
 const receivedViewMode = ref('table');
-const showRespondModal = ref(false);
-const respondDocument = ref(null);
 const acceptingId = ref(null);
 const rejectingId = ref(null);
 const showNotification = ref(false);
 const notificationMessage = ref('');
 const notificationType = ref('info');
 
-const respondForm = ref({
-  response_message: ''
+
+// Forward modal state
+const showForwardModal = ref(false);
+const forwardDocument = ref(null);
+const forwardSearch = ref('');
+const forwardCandidates = ref([]);
+const forwardSelected = ref([]);
+const forwardSending = ref(false);
+
+// Reject modal state
+const showRejectModal = ref(false);
+const rejectDocument = ref(null);
+const rejectSending = ref(false);
+const rejectForm = ref({
+  rejection_reason: ''
 });
+
+
+
 
 const approvalColumns = [
   { label: 'SUBJECT/TITLE', key: 'subject' },
-  { label: 'UPLOAD BY', key: 'upload_by' },
+  { label: 'UPLOADED BY', key: 'upload_by' },
   { label: 'UNIT', key: 'unit' },
   { label: 'ACTIONS', key: 'ACTIONS' },
 ];
@@ -361,8 +377,8 @@ const receivedColumns = [
   { label: 'TRACKING CODE', key: 'tracking_code' },
   { label: 'DOCUMENT TYPE', key: 'document_type' },
   { label: 'SUBJECT', key: 'subject' },
-  { label: 'UPLOAD BY', key: 'upload_by' },
-  { label: 'UPLOAD TO', key: 'upload_to' },
+  { label: 'UPLOADED BY', key: 'upload_by' },
+  { label: 'SENT TO', key: 'upload_to' },
   { label: 'ORIGINATING OFFICE', key: 'originating_office' },
   { label: 'PRIORITY', key: 'priority' },
   { label: 'STATUS', key: 'status' },
@@ -432,11 +448,130 @@ async function fetchDocuments() {
 
 
 
-function openRespondModal(document) {
-  respondDocument.value = document;
-  showRespondModal.value = true;
-  respondForm.value.response_message = '';
+
+function openForwardModal(document) {
+  forwardDocument.value = document;
+  showForwardModal.value = true;
+  forwardSearch.value = '';
+  forwardSelected.value = [];
+  fetchSameUnitUsers();
 }
+
+function openRejectModal(document) {
+  rejectDocument.value = document;
+  showRejectModal.value = true;
+  rejectForm.value.rejection_reason = '';
+}
+
+
+async function fetchSameUnitUsers() {
+  try {
+    const resp = await fetch(`/api/users?q=${encodeURIComponent(forwardSearch.value)}`);
+    const all = await resp.json();
+    const unitName = currentUser.value?.unit?.full_name || '';
+    const unitPrefix = unitName.split('/')[0];
+    forwardCandidates.value = all
+      .filter(u => (u.unit_name || '').startsWith(unitPrefix))
+      .filter(u => u.id !== (currentUser.value?.id || 0));
+  } catch (e) {
+    console.error('Error fetching same unit users', e);
+  }
+}
+
+async function sendForward() {
+  if (forwardSelected.value.length === 0) return;
+  forwardSending.value = true;
+  try {
+    const csrfToken = getCSRFToken();
+    const res = await fetch(`/documents/${forwardDocument.value.id}/forward`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        recipients: forwardSelected.value.map(u => u.name),
+        forward_notes: ''
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showNotificationMessage(data.message || 'Forwarded successfully', 'success');
+      showForwardModal.value = false;
+      await fetchDocuments();
+      window.dispatchEvent(new CustomEvent('refreshOutgoingDocuments'));
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showNotificationMessage(err.message || 'Error forwarding document', 'error');
+    }
+  } catch (e) {
+    console.error('Forward error', e);
+    showNotificationMessage('Error forwarding document', 'error');
+  } finally {
+    forwardSending.value = false;
+  }
+}
+
+async function submitRejection() {
+  if (!rejectForm.value.rejection_reason.trim()) return;
+  
+  rejectSending.value = true;
+  try {
+    const csrfToken = getCSRFToken();
+    
+    if (!csrfToken) {
+      showNotificationMessage('CSRF token not found. Please refresh the page and try again.', 'error');
+      return;
+    }
+    
+    const response = await fetch(`/documents/${rejectDocument.value.id}/reject`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        rejection_reason: rejectForm.value.rejection_reason
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      showNotificationMessage(data.message || 'Document rejected successfully', 'success');
+      showRejectModal.value = false;
+      rejectForm.value.rejection_reason = '';
+      await fetchDocuments();
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      showNotificationMessage(errorData.message || 'Error rejecting document', 'error');
+    }
+  } catch (error) {
+    console.error('Error rejecting document:', error);
+    showNotificationMessage('Error rejecting document', 'error');
+  } finally {
+    rejectSending.value = false;
+  }
+}
+
+
+
+
+
+
+
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleString();
+}
+
+
+
 const showPdfModal = ref(false);
 const pdfDocument = ref(null);
 const pdfUrl = ref("");
@@ -587,43 +722,6 @@ function viewDocument(document) {
   showPdfModal.value = true;
 }
 
-async function submitResponse() {
-  try {
-    const csrfToken = getCSRFToken();
-    console.log('CSRF Token for respond:', csrfToken);
-    
-    if (!csrfToken) {
-      showNotificationMessage('CSRF token not found. Please refresh the page and try again.', 'error');
-      return;
-    }
-    
-    const response = await fetch(`/documents/${respondDocument.value.id}/respond`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken,
-        'X-Requested-With': 'XMLHttpRequest',
-        'Accept': 'application/json'
-      },
-      credentials: 'same-origin',
-      body: JSON.stringify(respondForm.value)
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      showRespondModal.value = false;
-      respondForm.value.response_message = '';
-      showNotificationMessage(data.message || 'Response sent successfully', 'success');
-      await fetchDocuments(); // Refresh the documents list
-    } else {
-      const errorData = await response.json().catch(() => ({}));
-      showNotificationMessage(errorData.message || 'Error sending response', 'error');
-    }
-  } catch (error) {
-    console.error('Error sending response:', error);
-    showNotificationMessage('Error sending response. Please try again.', 'error');
-  }
-}
 
 async function acceptDocument(documentId) {
   acceptingId.value = documentId;
@@ -664,49 +762,15 @@ async function acceptDocument(documentId) {
   }
 }
 
-async function rejectDocument(documentId) {
-  if (!confirm('Are you sure you want to reject this document?')) {
-    return;
-  }
-  rejectingId.value = documentId;
-  try {
-    const csrfToken = getCSRFToken();
-    console.log('CSRF Token for reject:', csrfToken);
-    
-    if (!csrfToken) {
-      showNotificationMessage('CSRF token not found. Please refresh the page and try again.', 'error');
-      return;
-    }
-    
-    const response = await fetch(`/documents/${documentId}/reject`, {
-      method: 'POST',
-      headers: {
-        'X-CSRF-TOKEN': csrfToken,
-        'X-Requested-With': 'XMLHttpRequest',
-        'Accept': 'application/json'
-      },
-      credentials: 'same-origin'
-    });
-    if (response.ok) {
-      await fetchDocuments();
-    } else {
-      const data = await response.json().catch(() => ({}));
-      alert(data.message || 'Error rejecting document');
-    }
-  } catch (error) {
-    console.error('Error rejecting document:', error);
-    alert('Error rejecting document');
-  } finally {
-    rejectingId.value = null;
-  }
-}
 
 let pollTimer = null;
 
 onMounted(() => {
   fetchDocuments();
   // Poll every 5 seconds for near-instant updates
-  pollTimer = setInterval(fetchDocuments, 5000);
+  pollTimer = setInterval(async () => {
+    await fetchDocuments();
+  }, 5000);
   
   // Listen for custom refresh event from unarchived documents
   window.addEventListener('refreshIncomingDocuments', fetchDocuments);

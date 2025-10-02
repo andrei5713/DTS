@@ -5,13 +5,6 @@
       <SearchBar v-model="searchQuery" placeholder="Search archived documents..." />
       <div class="flex items-center space-x-1">
         <button 
-          @click="fetchDocuments"
-          class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-300"
-          title="Refresh Archived Documents"
-        >
-          Refresh
-        </button>
-        <button 
           @click="viewMode = 'table'"
           :class="[
             'p-2 rounded-md transition-colors',
@@ -111,11 +104,11 @@
                 <span class="text-gray-700">{{ document.document_type }}</span>
               </div>
               <div class="flex justify-between text-xs">
-                <span class="text-gray-500">From:</span>
+                <span class="text-gray-500">Uploaded By:</span>
                 <span class="text-gray-700">{{ document.upload_by }}</span>
               </div>
               <div class="flex justify-between text-xs">
-                <span class="text-gray-500">To:</span>
+                <span class="text-gray-500">Sent To:</span>
                 <span class="text-gray-700">{{ document.upload_to }}</span>
               </div>
               <div class="flex justify-between text-xs">
@@ -211,8 +204,8 @@ const archivedColumns = [
   { label: 'TRACKING CODE', key: 'tracking_code' },
   { label: 'DOCUMENT TYPE', key: 'document_type' },
   { label: 'SUBJECT', key: 'subject' },
-  { label: 'UPLOAD BY', key: 'upload_by' },
-  { label: 'UPLOAD TO', key: 'upload_to' },
+  { label: 'UPLOADED BY', key: 'upload_by' },
+  { label: 'SENT TO', key: 'upload_to' },
   { label: 'ORIGINATING OFFICE', key: 'originating_office' },
   { label: 'PRIORITY', key: 'priority' },
   { label: 'STATUS', key: 'status' },

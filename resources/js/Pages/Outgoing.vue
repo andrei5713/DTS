@@ -92,7 +92,7 @@
             <span class="text-gray-700">{{ document.document_type }}</span>
           </div>
           <div class="flex justify-between text-xs">
-            <span class="text-gray-500">To:</span>
+            <span class="text-gray-500">Sent To:</span>
             <span class="text-gray-700">{{ document.upload_to }}</span>
           </div>
           <div class="flex justify-between text-xs">
@@ -107,6 +107,10 @@
             <span class="text-gray-500">Date:</span>
             <span class="text-gray-700">{{ document.entry_date }}</span>
           </div>
+          <div v-if="document.status === 'rejected' && document.rejection_reason" class="flex justify-between text-xs">
+            <span class="text-gray-500">Rejection Reason:</span>
+            <span class="text-red-700 font-medium">{{ document.rejection_reason }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -119,6 +123,13 @@
       :units="units"
       :currentUser="currentUser"
     />
+    <!-- Notification -->
+    <Notification 
+      :show="showNotification"
+      :message="notificationMessage"
+      :type="notificationType"
+      @close="showNotification = false"
+    />
   </div>
 </template>
 
@@ -129,6 +140,7 @@ import Table from '@/Components/Table.vue';
 import UploadModal from '@/Components/UploadModal.vue';
 import SearchBar from '@/Components/SearchBar.vue';
 import { useDeleteAlert } from '@/composables/useDeleteAlert.js';
+import Notification from '@/Components/Notification.vue';
 
 const documents = ref([]);
 
@@ -140,6 +152,11 @@ const editFormData = ref(null);
 const units = ref([]);
 const canUpload = ref(false);
 const { confirmDelete } = useDeleteAlert();
+
+// Notification state
+const showNotification = ref(false);
+const notificationMessage = ref('');
+const notificationType = ref('info');
 
 let pollTimer = null;
 
@@ -156,6 +173,7 @@ const columns = [
   { label: 'ORIGINATING OFFICE', key: 'originating_office' },
   { label: 'PRIORITY', key: 'priority' },
   { label: 'STATUS', key: 'status' },
+  { label: 'REJECTION REASON', key: 'rejection_reason' },
   { label: 'ACTIONS', key: 'ACTIONS' },
 ];
 
@@ -270,8 +288,12 @@ async function handleUpload(uploadData) {
     if (response.ok) {
       const result = await response.json();
       if (result.success) {
-        // Refresh the page or update the documents list
-        window.location.reload();
+        // Show success notification and refresh list
+        showNotificationMessage(result.message || 'Document uploaded successfully.', 'success');
+        await fetchDocuments();
+        // Also notify other pages to refresh if needed
+        window.dispatchEvent(new CustomEvent('refreshIncomingDocuments'));
+        window.dispatchEvent(new CustomEvent('refreshOutgoingDocuments'));
       } else {
         alert('Error uploading document: ' + (result.message || 'Unknown error'));
       }
@@ -297,6 +319,13 @@ async function handleUpload(uploadData) {
   }
   
   showUploadModal.value = false;
+}
+
+
+function showNotificationMessage(message, type = 'info') {
+  notificationMessage.value = message;
+  notificationType.value = type;
+  showNotification.value = true;
 }
 
 

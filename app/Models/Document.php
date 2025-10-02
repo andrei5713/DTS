@@ -19,6 +19,8 @@ class Document extends Model
         'upload_by_user_id',
         'upload_to',
         'upload_to_user_id',
+        'forwarded_by',
+        'forwarded_by_user_id',
         'originating_office',
         'forward_to_department',
         'origin_type',
@@ -27,10 +29,8 @@ class Document extends Model
         'routing',
         'file_path',
         'file_name',
-        'response_message',
-        'responded_by',
-        'responded_at',
         'status',
+        'rejection_reason',
         'current_recipient_id',
         'forward_notes',
         'complied_by',
@@ -69,6 +69,12 @@ class Document extends Model
     public function acceptedByDo()
     {
         return $this->belongsTo(User::class, 'accepted_by_do_id');
+    }
+
+
+    public function forwardedByUser()
+    {
+        return $this->belongsTo(User::class, 'forwarded_by_user_id');
     }
 
     public function canUpload()

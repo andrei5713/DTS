@@ -70,4 +70,26 @@ class NotificationService
             ]
         ]);
     }
+
+    public static function createDocumentRejectedNotification($document, $uploaderUserId)
+    {
+        $uploader = User::find($uploaderUserId);
+        if (!$uploader) {
+            return null;
+        }
+
+        return Notification::create([
+            'user_id' => $uploaderUserId,
+            'type' => 'document_rejected',
+            'title' => 'Document Rejected',
+            'message' => "Your document has been rejected: {$document->subject}. Reason: {$document->rejection_reason}",
+            'data' => [
+                'document_id' => $document->id,
+                'tracking_code' => $document->tracking_code,
+                'rejection_reason' => $document->rejection_reason,
+                'rejected_at' => now(),
+            ]
+        ]);
+    }
+
 }

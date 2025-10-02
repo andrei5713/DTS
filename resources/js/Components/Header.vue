@@ -229,10 +229,16 @@ const markAllAsRead = async () => {
         
         if (!csrfToken) {
             console.error('CSRF token not found')
+            isMarkingAllAsRead.value = false
             return
         }
         
         console.log('Making API call to mark all as read...')
+        
+        // Create an AbortController for timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+        
         const response = await fetch('/api/notifications/read-all', {
             method: 'POST',
             headers: { 
@@ -241,8 +247,11 @@ const markAllAsRead = async () => {
                 'X-CSRF-TOKEN': csrfToken,
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            credentials: 'same-origin'
+            credentials: 'same-origin',
+            signal: controller.signal
         })
+        
+        clearTimeout(timeoutId)
         
         console.log('Mark all as read response:', response.status, response.statusText)
         
@@ -254,19 +263,30 @@ const markAllAsRead = async () => {
             
             // Update UI after successful backend call
             console.log('Updating UI after successful backend call...')
-            notifications.value.forEach(notification => {
-                console.log('Marking notification as read:', notification.id, notification.read)
-                notification.read = true
-            })
+            if (notifications.value && notifications.value.length > 0) {
+                notifications.value.forEach(notification => {
+                    console.log('Marking notification as read:', notification.id, notification.read)
+                    notification.read = true
+                })
+            }
             unreadCount.value = 0
             console.log('UI updated. New unread count:', unreadCount.value)
             console.log('Final notifications state:', notifications.value)
         } else {
             const errorData = await response.json().catch(() => ({}))
             console.error('Mark all as read failed:', errorData)
+            // Show user-friendly error message
+            alert('Failed to mark all notifications as read. Please try again.')
         }
     } catch (error) {
         console.error('Error marking all notifications as read:', error)
+        
+        if (error.name === 'AbortError') {
+            alert('Request timed out. Please check your connection and try again.')
+        } else {
+            // Show user-friendly error message
+            alert('An error occurred while marking notifications as read. Please try again.')
+        }
     } finally {
         isMarkingAllAsRead.value = false
     }

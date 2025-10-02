@@ -19,7 +19,7 @@ class DocumentController extends Controller
         
         // Get documents based on user role and unit
         // Users can only see documents they uploaded OR documents where they are the current recipient
-        $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
+        $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient', 'forwardedByUser'])
             ->where(function($query) use ($user) {
                 $query->where('upload_by_user_id', $user->id)
                       ->orWhere('current_recipient_id', $user->id);
@@ -39,13 +39,13 @@ class DocumentController extends Controller
 
         if ($showAll) {
             // Show all documents where the user is the current recipient
-            $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
+            $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient', 'forwardedByUser'])
                 ->where('current_recipient_id', $user->id)
                 ->latest()
                 ->get();
         } else {
             // Default: show only documents where the user is the current recipient
-            $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
+            $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient', 'forwardedByUser'])
                 ->where('current_recipient_id', $user->id)
                 ->latest()
                 ->get();
@@ -61,7 +61,7 @@ class DocumentController extends Controller
         $user = Auth::user();
         
         // Get outgoing documents (uploaded by the current user)
-        $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient'])
+        $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient', 'forwardedByUser'])
             ->where('upload_by_user_id', $user->id)
             ->latest()
             ->get();
@@ -292,38 +292,42 @@ class DocumentController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Document accepted successfully. No further forwarding required.'
+            'message' => 'Document accepted successfully.'
         ]);
     }
 
-    public function respond(Request $request, Document $document)
+
+    public function getRelatedDocuments(Document $document)
     {
         $user = Auth::user();
         
-        // Check if user can perform actions on this document
-        if (!$this->canUserPerformAction($document, 'respond')) {
+        // Check if user has access to this document
+        $hasAccess = $document->current_recipient_id === $user->id || 
+                     $document->upload_by_user_id === $user->id || 
+                     $document->upload_to_user_id === $user->id ||
+                     $document->forwarded_by_user_id === $user->id;
+        
+        if (!$hasAccess) {
             return response()->json([
                 'success' => false,
-                'message' => 'You are not authorized to respond to this document. Only the DO of the forwarded unit can perform actions.'
+                'message' => 'You are not authorized to view related documents.'
             ], 403);
         }
 
-        $request->validate([
-            'response_message' => 'required|string|max:1000',
-        ]);
-
-        // Update document with response
-        $document->update([
-            'response_message' => $request->response_message,
-            'responded_by' => $user->name,
-            'responded_at' => now(),
-        ]);
+        // Get the base tracking code (remove -FWD- suffix if present)
+        $baseTrackingCode = preg_replace('/-FWD-\d+-\d+$/', '', $document->tracking_code);
+        
+        // Find all related documents (original + all forwarded copies)
+        $relatedDocuments = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient', 'forwardedByUser'])
+            ->where('tracking_code', 'LIKE', $baseTrackingCode . '%')
+            ->get(); // Include all related documents, not excluding current
 
         return response()->json([
             'success' => true,
-            'message' => 'Response sent successfully to ' . $document->uploadByUser->name . '.'
+            'related_documents' => $relatedDocuments
         ]);
     }
+
 
     public function forward(Request $request, Document $document)
     {
@@ -338,56 +342,67 @@ class DocumentController extends Controller
         }
 
         $request->validate([
-            'forward_to_user' => 'required|string',
+            'recipients' => 'required|array|min:1',
+            'recipients.*' => 'string',
             'forward_notes' => 'nullable|string',
         ]);
 
-        // Find the user to forward to
-        $forwardToUser = User::where('name', $request->forward_to_user)->first();
-        if (!$forwardToUser) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Selected user not found.'
-            ], 400);
+        $forwardedCount = 0;
+        $errors = [];
+        $userUnit = $user->unit->full_name ?? '';
+        $userDepartment = explode('/', $userUnit)[0];
+
+        foreach ($request->recipients as $recipientName) {
+            $forwardToUser = User::where('name', $recipientName)->first();
+            if (!$forwardToUser) {
+                $errors[] = "Recipient not found: {$recipientName}";
+                continue;
+            }
+
+            $forwardToUserDepartment = explode('/', optional($forwardToUser->unit)->full_name ?? '')[0];
+            if ($userDepartment !== $forwardToUserDepartment) {
+                $errors[] = "Recipient not in same unit: {$recipientName}";
+                continue;
+            }
+
+            // Create a forwarded copy for each recipient; keep original in received for forwarder
+            $copy = $document->replicate([
+                'id', 'created_at', 'updated_at', 'responded_at', 'complied_at', 'archived_at', 'unarchived_at'
+            ]);
+            // Auto-deliver forwarded copy to recipient's Received
+            $copy->status = 'received';
+            $copy->current_recipient_id = $forwardToUser->id;
+            $copy->forward_notes = $request->forward_notes;
+            // Mark forwarder as uploader for outgoing visibility
+            $copy->upload_by = $user->name;
+            $copy->upload_by_user_id = $user->id;
+            // Set intended recipient fields to the selected user
+            $copy->upload_to = $forwardToUser->name;
+            $copy->upload_to_user_id = $forwardToUser->id;
+            // Track who forwarded this document
+            $copy->forwarded_by = $user->name;
+            $copy->forwarded_by_user_id = $user->id;
+            // Ensure unique tracking code for each forwarded copy
+            $copy->tracking_code = $document->tracking_code . '-FWD-' . $forwardToUser->id . '-' . now()->format('YmdHis');
+            $copy->save();
+            $forwardedCount++;
         }
 
-        // Check if this is a DO forwarding to the intended recipient
-        $userUnit = $user->unit->full_name ?? '';
-        $isDOForwarding = str_ends_with($userUnit, '/DO');
-        
-        if ($isDOForwarding && $forwardToUser->id === $document->upload_to_user_id) {
-            // DO is forwarding to the intended recipient
-            $document->update([
-                'status' => 'forwarded',
-                'current_recipient_id' => $forwardToUser->id,
-                'forward_notes' => $request->forward_notes,
-            ]);
-        } else {
-            // Regular forwarding - restrict to same department
-            $userDepartment = explode('/', $userUnit)[0];
-            $forwardToUserDepartment = explode('/', $forwardToUser->unit->full_name ?? '')[0];
-            
-            if ($userDepartment !== $forwardToUserDepartment) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You can only forward documents within your own department.'
-                ], 403);
-            }
-            
-            $document->update([
-                'status' => 'forwarded',
-                'current_recipient_id' => $forwardToUser->id,
-                'forward_notes' => $request->forward_notes,
-            ]);
+        if ($forwardedCount === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => count($errors) ? implode('\n', $errors) : 'No valid recipients.',
+            ], 400);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Document forwarded successfully.'
+            'message' => "Document forwarded to {$forwardedCount} recipient(s).",
+            'errors' => $errors,
         ]);
     }
 
-    public function reject(Document $document)
+    public function reject(Request $request, Document $document)
     {
         $user = Auth::user();
         
@@ -399,9 +414,17 @@ class DocumentController extends Controller
             ], 403);
         }
 
+        $request->validate([
+            'rejection_reason' => 'required|string|max:1000',
+        ]);
+
         $document->update([
             'status' => 'rejected',
+            'rejection_reason' => $request->rejection_reason,
         ]);
+
+        // Create notification for the document uploader
+        NotificationService::createDocumentRejectedNotification($document, $document->upload_by_user_id);
 
         return response()->json([
             'success' => true,

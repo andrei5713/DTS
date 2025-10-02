@@ -120,7 +120,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               <!-- Upload By -->
               <div v-if="document?.upload_by_user?.name" class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Upload By</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Uploaded By</label>
                 <input 
                   type="text" 
                   :value="document.upload_by_user.name" 
@@ -131,7 +131,7 @@
 
               <!-- Upload To -->
               <div v-if="document?.upload_to_user?.name" class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Upload To</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Sent To</label>
                 <input 
                   type="text" 
                   :value="document.upload_to_user.name" 

@@ -70,6 +70,13 @@ const showUserSuggestions = ref(false)
 const selectedUserIndex = ref(-1)
 let searchDebounce = null
 
+// Only include DO accounts (e.g., CPMSD/DO, FD/DO, IAD/DO)
+function isDoAccount(user) {
+    const unitName = (user?.unit_name || '').toUpperCase().trim()
+    // Match units that end with '/DO'
+    return unitName.endsWith('/DO')
+}
+
 const statusOptions = [
     { label: 'Simple', days: 3, color: 'blue', value: 'simple' },
     { label: 'Complex', days: 7, color: 'orange', value: 'complex' },
@@ -120,8 +127,9 @@ async function fetchUsers(query = '') {
             credentials: 'same-origin'
         })
         const data = await response.json()
-        users.value = data
-        filteredUsers.value = data
+        users.value = Array.isArray(data) ? data : []
+        // Apply DO filter immediately
+        filteredUsers.value = users.value.filter(isDoAccount)
     } catch (error) {
         console.error('Error fetching users:', error)
     }
@@ -135,8 +143,9 @@ function searchUsers(query) {
     searchDebounce = setTimeout(async () => {
         await fetchUsers(q)
 
-        // Match on name, username, email, or unit (case-insensitive)
+        // Restrict to DO accounts first, then match on name, username, email, or unit (case-insensitive)
         filteredUsers.value = users.value.filter(user => {
+            if (!isDoAccount(user)) return false
             const name = (user.name || '').toLowerCase()
             const username = (user.username || '').toLowerCase()
             const email = (user.email || '').toLowerCase()
@@ -183,7 +192,8 @@ function handleKeydown(event) {
 function handleFocus() {
     // Fetch and show initial list instantly on focus
     fetchUsers('').then(() => {
-        filteredUsers.value = users.value.slice(0, 20)
+        // Ensure only DO accounts are shown on initial focus
+        filteredUsers.value = users.value.filter(isDoAccount).slice(0, 20)
         showUserSuggestions.value = true
         selectedUserIndex.value = -1
     })
@@ -242,7 +252,16 @@ function validateForm() {
     if (!formData.value.subject.trim()) errors.value.subject = 'Subject is required'
     if (!formData.value.entryDate) errors.value.entryDate = 'Date of entry is required'
     if (!formData.value.uploadBy.trim()) errors.value.uploadBy = 'Upload by is required'
-    if (!formData.value.uploadTo.trim()) errors.value.uploadTo = 'Upload to is required'
+    if (!formData.value.uploadTo.trim()) {
+        errors.value.uploadTo = 'Upload to is required'
+    } else {
+        // Ensure the typed value corresponds to a DO account
+        const typedName = formData.value.uploadTo.trim().toLowerCase()
+        const matchedUser = users.value.find(u => (u.name || '').trim().toLowerCase() === typedName)
+        if (!matchedUser || !isDoAccount(matchedUser)) {
+            errors.value.uploadTo = 'Only DO accounts are authorized.'
+        }
+    }
     if (!formData.value.originatingOffice.trim()) errors.value.originatingOffice = 'Originating office is required'
     if (!formData.value.priority) errors.value.priority = 'Priority is required'
     if (!formData.value.file) errors.value.file = 'File is required'

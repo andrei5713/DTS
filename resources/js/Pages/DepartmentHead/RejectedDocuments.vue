@@ -67,6 +67,7 @@ const columns = [
   { label: 'PRIORITY', key: 'priority' },
   { label: 'REMARKS', key: 'remarks' },
   { label: 'ROUTING', key: 'routing' },
+  { label: 'REJECTION REASON', key: 'rejectionReason' },
   { label: 'FILE', key: 'file' },
   { label: 'ACTIONS', key: 'ACTIONS' },
 ];
