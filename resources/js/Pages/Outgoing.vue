@@ -51,6 +51,13 @@
       <Table :columns="columns" :rows="documents">
         <template #ACTIONS="{ row }">
           <div class="flex gap-2">
+            <button 
+              v-if="row.status === 'received'"
+              @click="openResponseModal(row)"
+              class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            >
+              Response
+            </button>
             <span v-if="row.status === 'pending'" class="text-yellow-600 text-sm">Pending</span>
             <span v-else-if="row.status === 'received'" class="text-green-600 text-sm">Received</span>
             <span v-else-if="row.status === 'forwarded'" class="text-blue-600 text-sm">Forwarded</span>
@@ -112,6 +119,16 @@
             <span class="text-red-700 font-medium">{{ document.rejection_reason }}</span>
           </div>
         </div>
+        
+        <div class="flex gap-2">
+          <button 
+            v-if="document.status === 'received'"
+            @click="openResponseModal(document)"
+            class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+          >
+            Response
+          </button>
+        </div>
       </div>
     </div>
     <UploadModal 
@@ -130,6 +147,13 @@
       :type="notificationType"
       @close="showNotification = false"
     />
+
+    <!-- Response Modal -->
+    <ResponseModal 
+      :show="showResponseModal"
+      :document="responseDocument"
+      @close="showResponseModal = false"
+    />
   </div>
 </template>
 
@@ -141,6 +165,7 @@ import UploadModal from '@/Components/UploadModal.vue';
 import SearchBar from '@/Components/SearchBar.vue';
 import { useDeleteAlert } from '@/composables/useDeleteAlert.js';
 import Notification from '@/Components/Notification.vue';
+import ResponseModal from '@/Components/ResponseModal.vue';
 
 const documents = ref([]);
 
@@ -157,6 +182,10 @@ const { confirmDelete } = useDeleteAlert();
 const showNotification = ref(false);
 const notificationMessage = ref('');
 const notificationType = ref('info');
+
+// Response modal state
+const showResponseModal = ref(false);
+const responseDocument = ref(null);
 
 let pollTimer = null;
 
@@ -326,6 +355,11 @@ function showNotificationMessage(message, type = 'info') {
   notificationMessage.value = message;
   notificationType.value = type;
   showNotification.value = true;
+}
+
+function openResponseModal(document) {
+  responseDocument.value = document;
+  showResponseModal.value = true;
 }
 
 

@@ -23,8 +23,8 @@
                 <div class="relative">
                     <button @click="toggleNotifications" class="relative">
                         <Bell class="w-6 h-6" />
-                        <span v-if="unreadCount > 0" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                            {{ unreadCount > 9 ? '9+' : unreadCount }}
+                        <span v-if="badgeUnreadCount > 0" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                            {{ badgeUnreadCount > 9 ? '9+' : badgeUnreadCount }}
                         </span>
                     </button>
                     
@@ -33,7 +33,7 @@
                         <div class="p-4 border-b border-gray-200">
                             <div class="flex items-center justify-between">
                                 <h3 class="text-lg font-semibold text-gray-900">Notifications</h3>
-                                <button v-if="unreadCount > 0 && !isMarkingAllAsRead" @click.stop="markAllAsRead" class="text-sm text-blue-600 hover:text-blue-800">
+                                <button v-if="hasUnreadNotifications && !isMarkingAllAsRead" @click.stop="markAllAsRead" class="text-sm text-blue-600 hover:text-blue-800">
                                     Mark all as read
                                 </button>
                                 <span v-if="isMarkingAllAsRead" class="text-sm text-gray-500">
@@ -52,7 +52,8 @@
                                  data-notification-item
                                  :class="[
                                      'p-4 hover:bg-gray-50 cursor-pointer transition-colors',
-                                     notification.read ? 'bg-gray-50' : 'bg-white'
+                                     notification.read ? 'bg-gray-50' : 'bg-white',
+                                     notification._isMarkingAsRead ? 'opacity-75 pointer-events-none' : ''
                                  ]">
                                 <div class="flex items-start space-x-3">
                                     <div :class="[
@@ -60,10 +61,16 @@
                                         notification.read ? 'bg-gray-300' : 'bg-blue-500'
                                     ]"></div>
                                     <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-900">{{ notification.title }}</p>
+                                        <div class="flex items-center justify-between">
+                                            <p class="text-sm font-medium text-gray-900">{{ notification.title }}</p>
+                                            <div v-if="notification._isMarkingAsRead" class="flex items-center text-xs text-gray-500">
+                                                <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 mr-1"></div>
+                                                Processing...
+                                            </div>
+                                        </div>
                                         <p class="text-sm text-gray-600 mt-1">{{ notification.message }}</p>
                                         <p class="text-xs text-gray-400 mt-1">{{ formatDate(notification.created_at) }}</p>
-                                        <div v-if="notification.type === 'document_received' || notification.type === 'document_forwarded'" class="mt-2">
+                                        <div v-if="notification.type === 'document_received' || notification.type === 'document_forwarded' || notification.type === 'document_received_incoming' || notification.type === 'document_forwarded_received'" class="mt-2">
                                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                 Click to view document
                                             </span>
@@ -84,7 +91,7 @@
                     <div v-if="isShowLogin" ref="dropdownRef"
                         class="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-xl ring-1 ring-gray-200 z-10"
                         @click.stop>
-                        <Link :href="route('logout')" method="post" as="button"
+                        <Link :href="route('logout')" method="post" as="button" @click="clearNotificationsState"
                             class="block w-full text-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Log
                         out
                         </Link>
@@ -104,7 +111,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { Link, usePage, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { Bell, ChevronDown, Shield, Users, User } from 'lucide-vue-next'
@@ -114,8 +121,9 @@ const isShowLogin = ref(false)
 const dropdownRef = ref(null)
 const showNotifications = ref(false)
 const notifications = ref([])
-const unreadCount = ref(0)
+const unreadCount = ref(0) // server-sourced unread count
 const isMarkingAllAsRead = ref(false)
+const isProcessingNotification = ref(false)
 const showPdfModal = ref(false)
 const pdfDocument = ref(null)
 const pdfUrl = ref('')
@@ -126,9 +134,7 @@ const toggleDropdown = () => {
 
 const toggleNotifications = () => {
     showNotifications.value = !showNotifications.value
-    if (showNotifications.value) {
-        fetchNotifications()
-    }
+    // The watcher will handle fetching notifications when dropdown opens
 }
 
 const handleClickOutside = (event) => {
@@ -150,7 +156,54 @@ const logout = () => {
 }
 
 // Notification functions
-const fetchNotifications = async () => {
+const refreshNotificationsIfNeeded = () => {
+    // Only refresh if dropdown is open and we're not processing
+    if (showNotifications.value && !isProcessingNotification.value) {
+        console.log('Refreshing notifications due to dropdown being open')
+        fetchNotifications()
+    }
+}
+
+// Add a watcher to refresh notifications when dropdown opens
+watch(showNotifications, (newValue) => {
+    if (newValue && !isProcessingNotification.value) {
+        // Always fetch fresh data when dropdown opens to ensure we have the latest read status
+        // This is especially important after login/logout cycles
+        setTimeout(() => {
+            fetchNotifications(true) // Force refresh to get latest data from server
+        }, 100)
+    }
+})
+
+const hasUserInteractedWithNotifications = ref(false)
+
+// Computed property to check if there are any unread notifications
+const hasUnreadNotifications = computed(() => {
+    return notifications.value.some(notification => !notification.read)
+})
+
+// Badge prefers server unread count; falls back to local computed if needed
+const badgeUnreadCount = computed(() => {
+    if (typeof unreadCount.value === 'number' && unreadCount.value >= 0) {
+        return unreadCount.value
+    }
+    return notifications.value.filter(notification => !notification.read).length
+})
+
+const fetchNotifications = async (forceRefresh = false) => {
+    // Don't fetch if we're currently processing a notification
+    if (isProcessingNotification.value) {
+        console.log('Skipping notification fetch - processing notification')
+        return
+    }
+    
+    // Always fetch fresh data from server on initial load or when forced
+    // This ensures we get the correct read status from the database
+    if (!forceRefresh && hasUserInteractedWithNotifications.value && notifications.value.length > 0) {
+        console.log('Skipping notification fetch - user has interacted with notifications and we have local data')
+        return
+    }
+    
     try {
         console.log('Fetching notifications...')
         const response = await fetch('/api/notifications', {
@@ -161,9 +214,14 @@ const fetchNotifications = async () => {
             const data = await response.json()
             console.log('Fetched notifications data:', data)
             notifications.value = data.notifications
-            unreadCount.value = data.unread_count
+            unreadCount.value = data.unread_count ?? notifications.value.filter(n => !n.read).length
             console.log('Set notifications:', notifications.value)
-            console.log('Set unread count:', unreadCount.value)
+            console.log('Server unread count:', unreadCount.value)
+            
+            // Clear locally modified flags when fetching fresh data
+            notifications.value.forEach(notification => {
+                delete notification._locallyMarkedAsRead
+            })
         } else {
             console.error('Failed to fetch notifications:', response.status, response.statusText)
         }
@@ -172,10 +230,13 @@ const fetchNotifications = async () => {
     }
 }
 
-const markAsRead = async (notification) => {
-    if (notification.read) return
+const markAsRead = async (notification, retryCount = 0) => {
+    if (notification.read) {
+        console.log('Notification already marked as read:', notification.id)
+        return true
+    }
     
-    console.log('Marking notification as read:', notification.id)
+    console.log(`Marking notification as read (attempt ${retryCount + 1}):`, notification.id)
     
     try {
         // Get CSRF token first
@@ -183,7 +244,7 @@ const markAsRead = async (notification) => {
         
         if (!csrfToken) {
             console.error('CSRF token not found')
-            return
+            throw new Error('CSRF token not found')
         }
         
         const response = await fetch(`/api/notifications/${notification.id}/read`, {
@@ -198,15 +259,37 @@ const markAsRead = async (notification) => {
         })
         
         if (response.ok) {
-            console.log('Notification marked as read:', notification.id)
-            // Update UI after successful backend call
+            console.log('Notification marked as read successfully:', notification.id)
+            // Update UI immediately after successful backend call
             notification.read = true
+            notification.read_at = new Date().toISOString()
             unreadCount.value = Math.max(0, unreadCount.value - 1)
+            console.log('UI updated - unread count:', unreadCount.value)
+            return true
         } else {
-            console.error('Failed to mark notification as read:', response.status, response.statusText)
+            const errorText = await response.text()
+            console.error('Failed to mark notification as read:', response.status, response.statusText, errorText)
+            
+            // Retry up to 2 times for server errors
+            if (response.status >= 500 && retryCount < 2) {
+                console.log(`Retrying mark as read (attempt ${retryCount + 2})`)
+                await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))) // Exponential backoff
+                return await markAsRead(notification, retryCount + 1)
+            }
+            
+            throw new Error(`Failed to mark notification as read: ${response.status} ${response.statusText}`)
         }
     } catch (error) {
         console.error('Error marking notification as read:', error)
+        
+        // Retry up to 2 times for network errors
+        if (retryCount < 2 && (error.name === 'TypeError' || error.message.includes('fetch'))) {
+            console.log(`Retrying mark as read due to network error (attempt ${retryCount + 2})`)
+            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))) // Exponential backoff
+            return await markAsRead(notification, retryCount + 1)
+        }
+        
+        throw error
     }
 }
 
@@ -215,6 +298,9 @@ const markAllAsRead = async () => {
         console.log('Already marking all as read, ignoring duplicate call')
         return
     }
+    
+    // Mark that user has interacted with notifications
+    hasUserInteractedWithNotifications.value = true
     
     console.log('Mark all as read clicked')
     console.log('Current notifications:', notifications.value)
@@ -267,10 +353,10 @@ const markAllAsRead = async () => {
                 notifications.value.forEach(notification => {
                     console.log('Marking notification as read:', notification.id, notification.read)
                     notification.read = true
+                    notification._locallyMarkedAsRead = true // Mark as locally modified
                 })
             }
-            unreadCount.value = 0
-            console.log('UI updated. New unread count:', unreadCount.value)
+            console.log('UI updated. New unread count:', actualUnreadCount.value)
             console.log('Final notifications state:', notifications.value)
         } else {
             const errorData = await response.json().catch(() => ({}))
@@ -295,21 +381,60 @@ const markAllAsRead = async () => {
 const handleNotificationClick = async (notification) => {
     console.log('Notification clicked:', notification)
     
-    // If it's a document notification, open the document viewer first
-    if (notification.type === 'document_received' || notification.type === 'document_forwarded') {
+    // Mark that user has interacted with notifications
+    hasUserInteractedWithNotifications.value = true
+    
+    // Prevent duplicate clicks
+    if (notification._isMarkingAsRead || isProcessingNotification.value) {
+        console.log('Notification is already being processed, ignoring duplicate click')
+        return
+    }
+    
+    // Set processing flag
+    isProcessingNotification.value = true
+    notification._isMarkingAsRead = true
+    
+    // Mark as read with retry mechanism
+    let markAsReadSuccess = false
+    try {
+        markAsReadSuccess = await markAsRead(notification)
+        console.log('Notification marked as read successfully:', markAsReadSuccess)
+        
+        // Update local state immediately after successful backend call
+        if (markAsReadSuccess) {
+            notification.read = true
+            notification.read_at = new Date().toISOString()
+            notification._locallyMarkedAsRead = true // Mark as locally modified
+            console.log('Local state updated - notification marked as read')
+            // Re-fetch unread count shortly after to reconcile the badge
+            setTimeout(() => fetchNotifications(true), 300)
+        }
+    } catch (error) {
+        console.error('Failed to mark notification as read after retries:', error)
+        alert('Could not mark notification as read. Please try again.')
+    } finally {
+        // Clear the flags
+        notification._isMarkingAsRead = false
+        isProcessingNotification.value = false
+    }
+    
+    // If it's a document notification, open the document viewer
+    if (notification.type === 'document_received' || notification.type === 'document_forwarded' || notification.type === 'document_received_incoming' || notification.type === 'document_forwarded_received') {
         const documentId = notification.data?.document_id
         console.log('Document ID:', documentId)
         if (documentId) {
-            const success = await openDocumentViewer(documentId)
-            // Only mark as read if the document viewer opened successfully
-            if (success) {
-                await markAsRead(notification)
+            try {
+                await openDocumentViewer(documentId)
+            } catch (error) {
+                console.error('Error opening document viewer:', error)
+                // Notification is already marked as read above, so we don't need to do anything else
             }
         }
-    } else {
-        // For non-document notifications, mark as read immediately
-        await markAsRead(notification)
     }
+    
+    // Don't refresh notifications immediately to avoid overriding the local state
+    // The notification will be refreshed when the dropdown is reopened
+    console.log('Notification processing completed, local state updated')
 }
 
 const openDocumentViewer = async (documentId) => {
@@ -370,9 +495,19 @@ const formatDate = (dateString) => {
     return date.toLocaleDateString()
 }
 
+// Utility to clear local notification-related UI state
+const clearNotificationsState = () => {
+    showNotifications.value = false
+    isProcessingNotification.value = false
+    isMarkingAllAsRead.value = false
+    hasUserInteractedWithNotifications.value = false
+    notifications.value = []
+}
+
 onMounted(() => {
     document.addEventListener('click', handleClickOutside)
-    fetchNotifications()
+    // Always fetch fresh notifications on initial load to ensure correct read status
+    fetchNotifications(true)
     
     // Refresh notifications every 30 seconds
     setInterval(fetchNotifications, 30000)
@@ -386,6 +521,17 @@ const page = usePage()
 const username = page.props.auth?.user?.username || 'Guest'
 const userRole = page.props.auth?.user?.role
 const userUnit = page.props.auth?.user?.unit?.full_name || null
+
+// Reset notifications when the authenticated user changes (handles logout/login cycles)
+watch(() => page.props.auth?.user?.id, (newUserId, oldUserId) => {
+    if (newUserId !== oldUserId) {
+        clearNotificationsState()
+        if (newUserId) {
+            // New login: fetch fresh notifications from server
+            fetchNotifications(true)
+        }
+    }
+})
 
 const roleDisplayText = computed(() => {
   switch (userRole) {

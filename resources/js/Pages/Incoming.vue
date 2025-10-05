@@ -36,7 +36,14 @@
             >
               Reject
             </button>
-            <div v-else-if="row.current_recipient_id === currentUser?.id && !canPerformActions(row)" class="text-gray-500 text-xs">
+            <button 
+              v-if="row.status === 'received'"
+              @click="openResponseModal(row)"
+              class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            >
+              Response
+            </button>
+            <div v-if="row.current_recipient_id === currentUser?.id && !canPerformActions(row)" class="text-gray-500 text-xs">
               Only DO of forwarded unit can perform actions
             </div>
           </div>
@@ -113,6 +120,13 @@
             Complied
           </button>
               <button 
+                v-if="row.status === 'received'"
+                @click="openResponseModal(row)"
+                class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              >
+                Response
+              </button>
+              <button 
                 @click="archiveDocument(row.id)"
                 class="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-300"
                 title="Archive Document"
@@ -183,6 +197,13 @@
                 View
               </button>
               <button 
+                v-if="document.status === 'received'"
+                @click="openResponseModal(document)"
+                class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              >
+                Response
+              </button>
+              <button 
                 @click="complyDocument(document.id)"
                 class="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-300"
               >
@@ -219,6 +240,13 @@
       :message="notificationMessage"
       :type="notificationType"
       @close="showNotification = false"
+    />
+
+    <!-- Response Modal -->
+    <ResponseModal 
+      :show="showResponseModal"
+      :document="responseDocument"
+      @close="showResponseModal = false"
     />
     
     <!-- Forward Modal -->
@@ -314,6 +342,7 @@ import Table from '@/Components/Table.vue';
 import SearchBar from '@/Components/SearchBar.vue';
 import EnhancedPdfViewer from '@/Components/EnhancedPdfViewer.vue';
 import Notification from '@/Components/Notification.vue';
+import ResponseModal from '@/Components/ResponseModal.vue';
 
 const page = usePage();
 const currentUser = computed(() => page.props.auth?.user);
@@ -362,6 +391,10 @@ const rejectSending = ref(false);
 const rejectForm = ref({
   rejection_reason: ''
 });
+
+// Response modal state
+const showResponseModal = ref(false);
+const responseDocument = ref(null);
 
 
 
@@ -461,6 +494,11 @@ function openRejectModal(document) {
   rejectDocument.value = document;
   showRejectModal.value = true;
   rejectForm.value.rejection_reason = '';
+}
+
+function openResponseModal(document) {
+  responseDocument.value = document;
+  showResponseModal.value = true;
 }
 
 

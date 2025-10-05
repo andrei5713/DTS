@@ -132,4 +132,14 @@ class Document extends Model
         $forwardedUnit = $this->getForwardedUnit();
         return str_ends_with($forwardedUnit, '/DO');
     }
+
+    public function responses()
+    {
+        return $this->hasMany(DocumentResponse::class)->whereNull('parent_response_id')->orderBy('created_at', 'desc');
+    }
+
+    public function allResponses()
+    {
+        return $this->hasMany(DocumentResponse::class)->orderBy('created_at', 'asc');
+    }
 }

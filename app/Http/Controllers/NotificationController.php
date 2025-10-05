@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class NotificationController extends Controller
@@ -20,22 +21,76 @@ class NotificationController extends Controller
             
         return response()->json([
             'notifications' => $notifications,
-            'unread_count' => $notifications->where('read', false)->count()
+            // Use full unread count, not just in-page items
+            'unread_count' => Notification::forUser($user->id)->unread()->count()
         ]);
     }
     
-    public function markAsRead(Notification $notification)
+    public function markAsRead($notificationId)
     {
         $user = Auth::user();
         
-        // Ensure user can only mark their own notifications as read
-        if ($notification->user_id !== $user->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
+        // Scope the notification lookup to the authenticated user
+        $notification = Notification::forUser($user->id)->where('id', $notificationId)->first();
+        if (!$notification) {
+            Log::warning('Notification not found or not owned by user when marking as read', [
+                'notification_id' => $notificationId,
+                'user_id' => $user->id,
+            ]);
+            return response()->json(['error' => 'Not found'], 404);
         }
         
-        $notification->markAsRead();
+        // Log the attempt
+        Log::info('Mark notification as read requested', [
+            'notification_id' => $notification->id,
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'notification_user_id' => $notification->user_id,
+            'notification_read' => $notification->read,
+            'notification_type' => $notification->type
+        ]);
         
-        return response()->json(['success' => true]);
+        // Check if already read
+        if ($notification->read) {
+            Log::info('Notification already marked as read', [
+                'notification_id' => $notification->id,
+                'user_id' => $user->id
+            ]);
+            return response()->json(['success' => true, 'already_read' => true]);
+        }
+        
+        // Use database transaction to ensure atomicity
+        try {
+            DB::transaction(function () use ($notification) {
+                $notification->markAsRead();
+                // Force refresh the model to get updated data
+                $notification->refresh();
+            });
+            
+            Log::info('Notification marked as read successfully', [
+                'notification_id' => $notification->id,
+                'user_id' => $user->id,
+                'read_at' => $notification->read_at,
+                'read_status' => $notification->read
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'notification' => [
+                    'id' => $notification->id,
+                    'read' => $notification->read,
+                    'read_at' => $notification->read_at
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to mark notification as read', [
+                'notification_id' => $notification->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json(['error' => 'Failed to mark notification as read'], 500);
+        }
     }
     
     public function markAllAsRead()

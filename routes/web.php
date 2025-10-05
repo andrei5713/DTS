@@ -104,6 +104,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/documents/{document}/can-perform-action', [DocumentController::class, 'canUserPerformAction'])->name('api.can-perform-action');
     Route::get('/api/debug-user-documents', [DocumentController::class, 'debugUserDocuments'])->name('api.debug-user-documents');
     
+    // Document Response routes
+    Route::get('/api/documents/{document}/responses', [DocumentController::class, 'getResponses'])->name('api.documents.responses');
+    Route::post('/api/documents/{document}/responses', [DocumentController::class, 'storeResponse'])->name('api.documents.responses.store');
+    Route::get('/api/responses/unread-count', [DocumentController::class, 'getUnreadResponseCount'])->name('api.responses.unread-count');
+    
     // Notification routes
     Route::get('/api/notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('api.notifications');
     Route::post('/api/notifications/{notification}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('api.notifications.read');

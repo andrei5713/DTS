@@ -92,4 +92,48 @@ class NotificationService
         ]);
     }
 
+    public static function createDocumentReceivedIncomingNotification($document, $recipientUserId)
+    {
+        $recipient = User::find($recipientUserId);
+        if (!$recipient) {
+            return null;
+        }
+
+        return Notification::create([
+            'user_id' => $recipientUserId,
+            'type' => 'document_received_incoming',
+            'title' => 'Document Received',
+            'message' => "You have received a new document in your incoming documents: {$document->subject}",
+            'data' => [
+                'document_id' => $document->id,
+                'tracking_code' => $document->tracking_code,
+                'document_type' => $document->document_type,
+                'upload_by' => $document->upload_by,
+                'originating_office' => $document->originating_office,
+            ]
+        ]);
+    }
+
+    public static function createDocumentForwardedReceivedNotification($document, $recipientUserId)
+    {
+        $recipient = User::find($recipientUserId);
+        if (!$recipient) {
+            return null;
+        }
+
+        return Notification::create([
+            'user_id' => $recipientUserId,
+            'type' => 'document_forwarded_received',
+            'title' => 'Forwarded Document Received',
+            'message' => "You have received a forwarded document: {$document->subject}",
+            'data' => [
+                'document_id' => $document->id,
+                'tracking_code' => $document->tracking_code,
+                'document_type' => $document->document_type,
+                'forwarded_by' => $document->forwarded_by,
+                'forward_notes' => $document->forward_notes,
+            ]
+        ]);
+    }
+
 }

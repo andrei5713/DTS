@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
+use App\Models\DocumentResponse;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -193,6 +194,9 @@ class DocumentController extends Controller
             'status' => 'pending',
             'current_recipient_id' => $initialRecipient->id,
         ]);
+
+        // Create notification for the initial recipient
+        NotificationService::createDocumentReceivedIncomingNotification($document, $initialRecipient->id);
 
         return response()->json([
             'success' => true,
@@ -385,6 +389,10 @@ class DocumentController extends Controller
             // Ensure unique tracking code for each forwarded copy
             $copy->tracking_code = $document->tracking_code . '-FWD-' . $forwardToUser->id . '-' . now()->format('YmdHis');
             $copy->save();
+            
+            // Create notification for the forwarded recipient
+            NotificationService::createDocumentForwardedReceivedNotification($copy, $forwardToUser->id);
+            
             $forwardedCount++;
         }
 
@@ -768,6 +776,117 @@ class DocumentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Document unarchived and moved back to incoming documents.'
+        ]);
+    }
+
+    public function getResponses(Document $document)
+    {
+        $user = Auth::user();
+        
+        // Check if user has access to this document
+        $hasAccess = $document->current_recipient_id === $user->id || 
+                     $document->upload_by_user_id === $user->id || 
+                     $document->upload_to_user_id === $user->id ||
+                     $document->forwarded_by_user_id === $user->id;
+        
+        if (!$hasAccess) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to view responses for this document.'
+            ], 403);
+        }
+
+        // Get the base tracking code (remove -FWD- suffix if present)
+        $baseTrackingCode = preg_replace('/-FWD-\d+-\d+$/', '', $document->tracking_code);
+        
+        // Find all related documents (original + all forwarded copies)
+        $relatedDocumentIds = Document::where('tracking_code', 'LIKE', $baseTrackingCode . '%')
+            ->pluck('id');
+
+        $responses = DocumentResponse::with(['user', 'replies.user', 'document'])
+            ->whereIn('document_id', $relatedDocumentIds)
+            ->whereNull('parent_response_id')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'responses' => $responses
+        ]);
+    }
+
+    public function storeResponse(Request $request, Document $document)
+    {
+        $user = Auth::user();
+        
+        // Check if user has access to this document
+        $hasAccess = $document->current_recipient_id === $user->id || 
+                     $document->upload_by_user_id === $user->id || 
+                     $document->upload_to_user_id === $user->id ||
+                     $document->forwarded_by_user_id === $user->id;
+        
+        if (!$hasAccess) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to respond to this document.'
+            ], 403);
+        }
+
+        $request->validate([
+            'message' => 'required|string|max:2000',
+            'parent_response_id' => 'nullable|exists:document_responses,id',
+        ]);
+
+        // Create response only for the specific document being responded to
+        $response = DocumentResponse::create([
+            'document_id' => $document->id,
+            'user_id' => $user->id,
+            'message' => $request->message,
+            'type' => $request->parent_response_id ? 'reply' : 'response',
+            'parent_response_id' => $request->parent_response_id,
+        ]);
+
+
+        // Load relationships for response
+        $response->load(['user', 'parentResponse.user', 'document']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Response sent successfully.',
+            'response' => $response
+        ]);
+    }
+
+
+    public function getUnreadResponseCount()
+    {
+        $user = Auth::user();
+        
+        // Get documents where user is involved
+        $userDocuments = Document::where('current_recipient_id', $user->id)
+            ->orWhere('upload_by_user_id', $user->id)
+            ->orWhere('upload_to_user_id', $user->id)
+            ->orWhere('forwarded_by_user_id', $user->id)
+            ->get();
+
+        $allDocumentIds = [];
+        
+        // For each document, also include all related documents (forwarded copies)
+        foreach ($userDocuments as $document) {
+            $baseTrackingCode = preg_replace('/-FWD-\d+-\d+$/', '', $document->tracking_code);
+            $relatedIds = Document::where('tracking_code', 'LIKE', $baseTrackingCode . '%')
+                ->pluck('id');
+            $allDocumentIds = array_merge($allDocumentIds, $relatedIds->toArray());
+        }
+
+        $unreadCount = DocumentResponse::whereIn('document_id', $allDocumentIds)
+            ->where('user_id', '!=', $user->id)
+            ->where('is_read', false)
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'unread_count' => $unreadCount
         ]);
     }
 }
