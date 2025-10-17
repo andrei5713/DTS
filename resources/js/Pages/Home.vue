@@ -35,6 +35,44 @@
         </Tabs>
       </div>
     </div>
+            <div v-else-if="userRole === 'encoder'">
+      <div class="mt-6">
+        <Tabs v-model="activeTab" :tabs="departmentHeadTabs">
+          <template #default="{ activeTab }">
+            <div>
+              <div v-show="activeTab === 'outgoing'">
+                <Outgoing />
+              </div>
+              <div v-show="activeTab === 'incoming'">
+                <Incoming />
+              </div>
+              <div v-show="activeTab === 'archived'">
+                <ArchivedDocuments :key="activeTab" />
+              </div>
+            </div>
+          </template>
+        </Tabs>
+      </div>
+    </div>
+    <div v-else-if="userRole === 'viewer'">
+      <div class="mt-6">
+        <Tabs v-model="activeTab" :tabs="departmentHeadTabs">
+          <template #default="{ activeTab }">
+            <div>
+              <div v-show="activeTab === 'outgoing'">
+                <Outgoing />
+              </div>
+              <div v-show="activeTab === 'incoming'">
+                <Incoming />
+              </div>
+              <div v-show="activeTab === 'archived'">
+                <ArchivedDocuments :key="activeTab" />
+              </div>
+            </div>
+          </template>
+        </Tabs>
+      </div>
+    </div>
     <div v-else>
       <div class="mt-6">
         <Tabs v-model="activeTab">
@@ -53,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import Header from '../Components/Header.vue'
 import Tabs from '../Components/Tabs.vue'
@@ -62,8 +100,8 @@ import Outgoing from './Outgoing.vue'
 import AdminDashboard from './Admin/AdminDashboard.vue'
 import UserManagement from './Admin/UserManagement.vue'
 import PendingUsers from './Admin/PendingUsers.vue'
+import ArchivedDocuments from './DepartmentHead/ArchivedDocuments.vue'
 
-const activeTab = ref('dashboard')
 const page = usePage()
 const userRole = computed(() => page.props.auth?.user?.role)
 
@@ -72,4 +110,43 @@ const adminTabs = [
   { label: 'User Management', value: 'users' },
   { label: 'Pending Users', value: 'pending' },
 ]
+
+const departmentHeadTabs = [
+  { label: 'Outgoing', value: 'outgoing' },
+  { label: 'Incoming', value: 'incoming' },
+  { label: 'Archived', value: 'archived' },
+]
+
+const userTabs = [
+  { label: 'Incoming', value: 'incoming' },
+  { label: 'Outgoing', value: 'outgoing' },
+]
+
+function getTabKey(role) {
+  if (role === 'admin') return 'activeTab_admin'
+          if (role === 'encoder') return 'activeTab_encoder'
+      if (role === 'viewer') return 'activeTab_viewer'
+  return 'activeTab_guest'
+}
+
+const activeTab = ref('outgoing')
+
+onMounted(() => {
+  const key = getTabKey(userRole.value)
+  const saved = localStorage.getItem(key)
+  if (saved) {
+    activeTab.value = saved
+  } else {
+    // Set default tab for each role
+    if (userRole.value === 'admin') activeTab.value = 'dashboard'
+            else if (userRole.value === 'encoder') activeTab.value = 'outgoing'
+            else if (userRole.value === 'viewer') activeTab.value = 'incoming'
+    else activeTab.value = 'incoming'
+  }
+})
+
+watch([activeTab, userRole], ([tab, role]) => {
+  const key = getTabKey(role)
+  localStorage.setItem(key, tab)
+})
 </script>

@@ -43,13 +43,14 @@ const props = defineProps({
     ],
   },
 })
-const emit = defineEmits(['update:activeTab'])
+const emit = defineEmits(['update:modelValue', 'update:activeTab'])
 
 const tabWidth = ref(245)
 const activeTab = ref(props.modelValue)
 
 function setActiveTab(tab) {
   activeTab.value = tab
+  emit('update:modelValue', tab)
   emit('update:activeTab', tab)
 }
 

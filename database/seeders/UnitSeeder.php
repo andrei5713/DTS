@@ -35,10 +35,34 @@ class UnitSeeder extends Seeder
                 'description' => 'Information and Communication Technology Services Division - IT and communication services',
                 'is_active' => true,
             ],
+            [
+                'name' => 'Finance Division',
+                'code' => 'FD/DO',
+                'full_name' => 'FD/DO',
+                'description' => 'Finance Division - Director\'s Office',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Finance Division - Administrative Division',
+                'code' => 'FD/AD',
+                'full_name' => 'FD/AD',
+                'description' => 'Finance Division - Administrative Division',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Finance Division - Budget Division',
+                'code' => 'FD/BD',
+                'full_name' => 'FD/BD',
+                'description' => 'Finance Division - Budget Division',
+                'is_active' => true,
+            ],
         ];
 
         foreach ($units as $unit) {
-            Unit::create($unit);
+            Unit::updateOrCreate(
+                ['code' => $unit['code']],
+                $unit
+            );
         }
     }
 }

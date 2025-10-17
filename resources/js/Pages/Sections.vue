@@ -17,6 +17,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import Header from '../Components/Header.vue';
 import Tabs from '../Components/Tabs.vue';
 import Incoming from './Incoming.vue';
 import Outgoing from './Outgoing.vue';

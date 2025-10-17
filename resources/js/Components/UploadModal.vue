@@ -1,44 +1,42 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 
 const props = defineProps({
-    show: {
-        type: Boolean,
-        default: false
-    },
-    title: {
-        type: String,
-        default: 'Upload Document'
-    },
-    formData: {
-        type: Object,
-        default: null
-    },
-    units: {
-        type: Array,
-        default: () => []
-    }
+    show: { type: Boolean, default: false },
+    title: { type: String, default: 'Upload Document' },
+    formData: { type: Object, default: null },
+    units: { type: Array, default: () => [] },
+    currentUser: { type: Object, default: null }
 })
 
 const emit = defineEmits(['close', 'upload'])
 
-function generateTrackingNumber() {
-    const prefix = 'CPMSD';
+// Watch for modal opening to fetch users
+watch(() => props.show, (isOpen) => {
+    if (isOpen) {
+        // Fetch all users when modal opens
+        fetchUsers()
+    }
+})
+
+function generateTrackingNumber(prefix) {
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
     const rand = Math.floor(1000 + Math.random() * 9000);
-    return `${prefix}-${yyyy}-${mm}-${rand}`;
+    return `${prefix || 'XXX'}-${yyyy}-${mm}-${rand}`;
 }
 
 const formData = ref({
     trackingCode: '',
     documentType: '',
     subject: '',
-    entryDate: new Date().toISOString().slice(0, 10), // auto entry date
+    entryDate: new Date().toISOString().slice(0, 10),
     uploadBy: '',
+    uploadTo: '',
     originatingOffice: '',
+    forwardToDepartment: '',
     originType: 'internal',
     priority: '',
     remarks: '',
@@ -48,12 +46,36 @@ const formData = ref({
 
 const errors = ref({})
 const isUploading = ref(false)
+// Ensure tracking code displays and stores dashes instead of slashes
+const trackingCodeDisplay = computed({
+    get() {
+        return (formData.value.trackingCode || '').replaceAll('/', '-')
+    },
+    set(val) {
+        formData.value.trackingCode = (val || '').replaceAll('/', '-')
+    }
+})
+
 
 const isDocumentTypeOpen = ref(false)
 const isOriginTypeOpen = ref(false)
 const isPriorityOpen = ref(false)
 const isRoutingOpen = ref(false)
 const isDepartmentOpen = ref(false)
+const isForwardToDepartmentOpen = ref(false)
+
+const users = ref([])
+const filteredUsers = ref([])
+const showUserSuggestions = ref(false)
+const selectedUserIndex = ref(-1)
+let searchDebounce = null
+
+// Only include DO accounts (e.g., CPMSD/DO, FD/DO, IAD/DO)
+function isDoAccount(user) {
+    const unitName = (user?.unit_name || '').toUpperCase().trim()
+    // Match units that end with '/DO'
+    return unitName.endsWith('/DO')
+}
 
 const statusOptions = [
     { label: 'Simple', days: 3, color: 'blue', value: 'simple' },
@@ -62,12 +84,7 @@ const statusOptions = [
     { label: 'Urgent', days: 1, color: 'purple', value: 'urgent' },
 ]
 
-const documentTypes = [
-    'Memo',
-    'Letter',
-    'PR',
-    'DV',
-]
+const documentTypes = ['Memo', 'Letter', 'PR', 'DV']
 
 const priorities = [
     'Simple (3 days)',
@@ -78,30 +95,129 @@ const priorities = [
 
 function closeModal() {
     emit('close')
-    // Reset only after closing
+    const user = props.currentUser || currentUserFromPage.value
+    const originatingOffice = user && user.unit ? user.unit.full_name : ''
     formData.value = {
-        trackingCode: generateTrackingNumber(),
+        trackingCode: generateTrackingNumber(originatingOffice),
         documentType: '',
         subject: '',
-        entryDate: new Date().toISOString().slice(0, 10), // auto entry date
-        uploadBy: '',
-        originatingOffice: '',
+        entryDate: new Date().toISOString().slice(0, 10),
+        uploadBy: user ? user.name : '',
+        uploadTo: '',
+        originatingOffice,
+        forwardToDepartment: '',
         originType: 'internal',
         priority: '',
         remarks: '',
         file: null,
         routing: 'internal',
     }
+    
+    // Reset user suggestions
+    showUserSuggestions.value = false
+    selectedUserIndex.value = -1
+    filteredUsers.value = []
+}
+
+async function fetchUsers(query = '') {
+    try {
+        // Always fetch users; include query for backend filtering
+        const response = await fetch(`/api/users${query ? `?q=${encodeURIComponent(query)}` : ''}`, {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        })
+        const data = await response.json()
+        users.value = Array.isArray(data) ? data : []
+        // Apply DO filter immediately
+        filteredUsers.value = users.value.filter(isDoAccount)
+    } catch (error) {
+        console.error('Error fetching users:', error)
+    }
+}
+
+function searchUsers(query) {
+    const q = query.trim().toLowerCase()
+    if (searchDebounce) clearTimeout(searchDebounce)
+
+    // Show suggestions while typing with a very short debounce
+    searchDebounce = setTimeout(async () => {
+        await fetchUsers(q)
+
+        // Restrict to DO accounts first, then match on name, username, email, or unit (case-insensitive)
+        filteredUsers.value = users.value.filter(user => {
+            if (!isDoAccount(user)) return false
+            const name = (user.name || '').toLowerCase()
+            const username = (user.username || '').toLowerCase()
+            const email = (user.email || '').toLowerCase()
+            const unit = (user.unit_name || '').toLowerCase()
+            if (!q) return true
+            return name.includes(q) || username.includes(q) || email.includes(q) || unit.includes(q)
+        })
+
+        // Limit to first 20 for performance
+        filteredUsers.value = filteredUsers.value.slice(0, 20)
+        showUserSuggestions.value = filteredUsers.value.length > 0
+        selectedUserIndex.value = -1
+    }, 100)
+}
+
+function selectUser(user) {
+    formData.value.uploadTo = user.name
+    if (user.unit_name && user.unit_name !== 'N/A') {
+        formData.value.forwardToDepartment = user.unit_name
+    }
+    showUserSuggestions.value = false
+    selectedUserIndex.value = -1
+}
+
+function handleKeydown(event) {
+    if (!showUserSuggestions.value) return
+    if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        selectedUserIndex.value = Math.min(selectedUserIndex.value + 1, filteredUsers.value.length - 1)
+    } else if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        selectedUserIndex.value = Math.max(selectedUserIndex.value - 1, -1)
+    } else if (event.key === 'Enter') {
+        event.preventDefault()
+        if (selectedUserIndex.value >= 0 && filteredUsers.value[selectedUserIndex.value]) {
+            selectUser(filteredUsers.value[selectedUserIndex.value])
+        }
+    } else if (event.key === 'Escape') {
+        showUserSuggestions.value = false
+        selectedUserIndex.value = -1
+    }
+}
+
+function handleFocus() {
+    // Fetch and show initial list instantly on focus
+    fetchUsers('').then(() => {
+        // Ensure only DO accounts are shown on initial focus
+        filteredUsers.value = users.value.filter(isDoAccount).slice(0, 20)
+        showUserSuggestions.value = true
+        selectedUserIndex.value = -1
+    })
+}
+
+function handleBlur() {
+    setTimeout(() => {
+        showUserSuggestions.value = false
+        selectedUserIndex.value = -1
+    }, 200)
 }
 
 function resetForm() {
+    const user = props.currentUser || currentUserFromPage.value
+    const originatingOffice = user && user.unit ? user.unit.full_name : ''
     formData.value = {
-        trackingCode: generateTrackingNumber(),
+        trackingCode: generateTrackingNumber(originatingOffice),
         documentType: '',
         subject: '',
-        entryDate: new Date().toISOString().slice(0, 10), // auto entry date
-        uploadBy: '',
-        originatingOffice: '',
+        entryDate: new Date().toISOString().slice(0, 10),
+        uploadBy: user ? user.name : '',
+        uploadTo: '',
+        originatingOffice,
+        forwardToDepartment: '',
         originType: 'internal',
         priority: '',
         remarks: '',
@@ -131,37 +247,29 @@ function handleFileChange(event) {
 
 function validateForm() {
     errors.value = {}
-    if (!formData.value.trackingCode.trim()) {
-        errors.value.trackingCode = 'Tracking number is required'
+    if (!formData.value.trackingCode.trim()) errors.value.trackingCode = 'Tracking number is required'
+    if (!formData.value.documentType) errors.value.documentType = 'Document type is required'
+    if (!formData.value.subject.trim()) errors.value.subject = 'Subject is required'
+    if (!formData.value.entryDate) errors.value.entryDate = 'Date of entry is required'
+    if (!formData.value.uploadBy.trim()) errors.value.uploadBy = 'Upload by is required'
+    if (!formData.value.uploadTo.trim()) {
+        errors.value.uploadTo = 'Upload to is required'
+    } else {
+        // Ensure the typed value corresponds to a DO account
+        const typedName = formData.value.uploadTo.trim().toLowerCase()
+        const matchedUser = users.value.find(u => (u.name || '').trim().toLowerCase() === typedName)
+        if (!matchedUser || !isDoAccount(matchedUser)) {
+            errors.value.uploadTo = 'Only DO accounts are authorized.'
+        }
     }
-    if (!formData.value.documentType) {
-        errors.value.documentType = 'Document type is required'
-    }
-    if (!formData.value.subject.trim()) {
-        errors.value.subject = 'Subject is required'
-    }
-    if (!formData.value.entryDate) {
-        errors.value.entryDate = 'Date of entry is required'
-    }
-    if (!formData.value.uploadBy.trim()) {
-        errors.value.uploadBy = 'Upload by is required'
-    }
-    if (!formData.value.originatingOffice.trim()) {
-        errors.value.originatingOffice = 'Originating office is required'
-    }
-    if (!formData.value.priority) {
-        errors.value.priority = 'Priority is required'
-    }
-    if (!formData.value.file) {
-        errors.value.file = 'File is required'
-    }
+    if (!formData.value.originatingOffice.trim()) errors.value.originatingOffice = 'Originating office is required'
+    if (!formData.value.priority) errors.value.priority = 'Priority is required'
+    if (!formData.value.file) errors.value.file = 'File is required'
     return Object.keys(errors.value).length === 0
 }
 
 async function handleSubmit() {
-    if (!validateForm()) {
-        return
-    }
+    if (!validateForm()) return
     isUploading.value = true
     try {
         const uploadData = new FormData()
@@ -182,35 +290,41 @@ async function handleSubmit() {
     }
 }
 
+const page = usePage()
+const currentUserFromPage = computed(() => page.props.auth?.user)
+
 watch(() => props.show, (newValue) => {
-    if (newValue) {
-        // Only reset if not editing
-        if (!props.formData) {
-            resetForm()
-        }
+    if (newValue && !props.formData) {
+        resetForm()
+        fetchUsers()
     }
 })
 
 watch(() => props.formData, (newVal) => {
-  if (newVal) {
-    formData.value = { ...newVal };
-  } else {
-    // Only reset if not editing
-    formData.value = {
-      trackingCode: generateTrackingNumber(),
-      documentType: '',
-      subject: '',
-      entryDate: new Date().toISOString().slice(0, 10), // auto entry date
-      uploadBy: '',
-      originatingOffice: '',
-      originType: 'internal',
-      priority: '',
-      remarks: '',
-      file: null,
-      routing: 'internal',
-    };
-  }
-}, { immediate: true });
+    if (newVal) {
+        formData.value = { ...newVal }
+    } else {
+        resetForm()
+    }
+}, { immediate: true })
+
+watch(() => props.currentUser, (newUser) => {
+    if (newUser && !props.formData) {
+        formData.value.uploadBy = newUser.name
+        if (newUser.unit && newUser.unit.full_name) {
+            formData.value.originatingOffice = newUser.unit.full_name
+        }
+    }
+}, { immediate: true })
+
+watch(() => currentUserFromPage.value, (newUser) => {
+    if (newUser && !props.formData && !formData.value.uploadBy) {
+        formData.value.uploadBy = newUser.name
+        if (newUser.unit && newUser.unit.full_name) {
+            formData.value.originatingOffice = newUser.unit.full_name
+        }
+    }
+}, { immediate: true })
 </script>
 
 <template>
@@ -232,7 +346,7 @@ watch(() => props.formData, (newVal) => {
               <!-- Tracking Number -->
               <div>
                 <label for="trackingCode" class="block text-sm font-medium text-gray-700 mb-1">Tracking Number *</label>
-                <input id="trackingCode" v-model="formData.trackingCode" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.trackingCode }" />
+                <input id="trackingCode" v-model="trackingCodeDisplay" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.trackingCode }" />
                 <p v-if="errors.trackingCode" class="mt-1 text-sm text-red-600">{{ errors.trackingCode }}</p>
               </div>
               <!-- Document Type -->
@@ -265,9 +379,40 @@ watch(() => props.formData, (newVal) => {
               </div>
               <!-- Upload By -->
               <div>
-                <label for="uploadBy" class="block text-sm font-medium text-gray-700 mb-1">Upload By *</label>
-                <input id="uploadBy" v-model="formData.uploadBy" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.uploadBy }" />
+                <label for="uploadBy" class="block text-sm font-medium text-gray-700 mb-1">Uploaded By *</label>
+                <input id="uploadBy" v-model="formData.uploadBy" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" :class="{ 'border-red-500': errors.uploadBy }" readonly />
                 <p v-if="errors.uploadBy" class="mt-1 text-sm text-red-600">{{ errors.uploadBy }}</p>
+              </div>
+              <!-- Upload To -->
+              <div class="relative">
+                <label for="uploadTo" class="block text-sm font-medium text-gray-700 mb-1">Route To *</label>
+                <input 
+                  id="uploadTo" 
+                  v-model="formData.uploadTo" 
+                  type="text" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  :class="{ 'border-red-500': errors.uploadTo }"
+                  @input="searchUsers($event.target.value)"
+                  @keydown="handleKeydown"
+                  @focus="handleFocus"
+                  @blur="handleBlur"
+                  placeholder="Start typing to search users..."
+                />
+                <!-- User suggestions dropdown -->
+                <div v-if="showUserSuggestions && filteredUsers.length > 0" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  <div 
+                    v-for="(user, index) in filteredUsers" 
+                    :key="user.id"
+                    @click="selectUser(user)"
+                    class="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                    :class="{ 'bg-blue-100': index === selectedUserIndex }"
+                  >
+                    <div class="font-medium">{{ user.name }}</div>
+                    <div class="text-sm text-gray-600">{{ user.username }} • {{ user.email }}</div>
+                    <div class="text-xs text-gray-500">{{ user.unit_name }} • Added {{ new Date(user.created_at).toLocaleDateString() }}</div>
+                  </div>
+                </div>
+                <p v-if="errors.uploadTo" class="mt-1 text-sm text-red-600">{{ errors.uploadTo }}</p>
               </div>
               <!-- Origin Type -->
               <div>
@@ -304,6 +449,21 @@ watch(() => props.formData, (newVal) => {
                   </div>
                 </div>
                 <p v-if="errors.originatingOffice" class="mt-1 text-sm text-red-600">{{ errors.originatingOffice }}</p>
+              </div>
+              <!-- Forward to Department -->
+              <div class="relative">
+                <label for="forwardToDepartment" class="block text-sm font-medium text-gray-700 mb-1">Forward to Department/Division</label>
+                <div class="relative">
+                  <select id="forwardToDepartment" v-model="formData.forwardToDepartment" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer pr-12" @focus="isForwardToDepartmentOpen = true" @blur="isForwardToDepartmentOpen = false">
+                    <option value="">Select Department/Division to Forward</option>
+                    <option v-for="unit in units" :key="unit.id" :value="unit.full_name">{{ unit.full_name }}</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                    <svg class="w-5 h-5 text-gray-700 font-bold transition-transform duration-200" :class="{ 'rotate-180': isForwardToDepartmentOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                </div>
               </div>
               <!-- Priority Level -->
               <div class="relative">

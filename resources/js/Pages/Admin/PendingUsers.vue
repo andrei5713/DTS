@@ -32,18 +32,19 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <select
                   v-model="user.assignedRole"
-                  class="text-sm border border-gray-300 rounded px-2 py-1"
+                  class="text-sm border border-gray-300 rounded px-2 py-1 w-32"
                 >
-                  <option value="user">User</option>
-                  <option value="department_head">Department Head</option>
-                  <option value="admin">Admin</option>
+                  <option value="">Select Role</option>
+                  <option value="viewer">Viewer</option>
+                  <option value="encoder">Encoder</option>
                 </select>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <select
                   v-model="user.assignedUnit"
-                  class="text-sm border border-gray-300 rounded px-2 py-1"
+                  class="text-sm border border-gray-300 rounded px-2 py-1 w-48"
                 >
+                  <option value="">Select Unit</option>
                   <option v-for="unit in units" :key="unit.id" :value="unit.id">
                     {{ unit.full_name }}
                   </option>
@@ -81,16 +82,15 @@
       <div class="flex space-x-4">
         <select
           v-model="bulkRole"
-          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
         >
           <option value="">Select Role for All</option>
-          <option value="user">User</option>
-          <option value="department_head">Department Head</option>
-          <option value="admin">Admin</option>
+          <option value="viewer">Viewer</option>
+          <option value="encoder">Encoder</option>
         </select>
         <select
           v-model="bulkUnit"
-          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
         >
           <option value="">Select Unit for All</option>
           <option v-for="unit in units" :key="unit.id" :value="unit.id">
@@ -116,7 +116,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 const props = defineProps({
@@ -130,9 +130,22 @@ const props = defineProps({
   },
 })
 
-const pendingUsers = ref(props.pendingUsers)
+const pendingUsers = ref(props.pendingUsers.map(user => ({
+  ...user,
+  assignedRole: '',
+  assignedUnit: ''
+})))
 const bulkRole = ref('')
 const bulkUnit = ref('')
+
+// Watch for changes in props and update the local state
+watch(() => props.pendingUsers, (newPendingUsers) => {
+  pendingUsers.value = newPendingUsers.map(user => ({
+    ...user,
+    assignedRole: '',
+    assignedUnit: ''
+  }))
+}, { deep: true })
 
 const approveUser = (user) => {
   if (!user.assignedRole || !user.assignedUnit) {
