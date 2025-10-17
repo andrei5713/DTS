@@ -106,7 +106,7 @@
                 View
               </button>
           <button 
-            v-if="(currentUser?.unit?.full_name || '').endsWith('/DO')"
+            v-if="(currentUser?.unit?.full_name || '').endsWith('/DO') && row.status !== 'complied'"
             @click="openForwardModal(row)"
             class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-300"
           >
@@ -115,12 +115,18 @@
           <button 
             v-if="(currentUser?.unit?.full_name || '').endsWith('/DO')"
             @click="complyDocument(row.id)"
-            class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-300"
+            :disabled="row.status === 'complied'"
+            :class="[
+              'text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2',
+              row.status === 'complied' 
+                ? 'bg-gray-500 cursor-not-allowed opacity-75' 
+                : 'bg-orange-500 hover:bg-orange-600 focus:ring-orange-300'
+            ]"
           >
-            Complied
+            {{ row.status === 'complied' ? 'Complied' : 'Comply' }}
           </button>
               <button 
-                v-if="row.status === 'received'"
+                v-if="row.status === 'received' && row.status !== 'complied'"
                 @click="openResponseModal(row)"
                 class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-300"
               >
@@ -133,7 +139,6 @@
               >
                 <Archive class="w-4 h-4" />
               </button>
-              <span class="text-green-600 text-sm font-medium">Accepted</span>
             </div>
         </template>
       </Table>
@@ -197,7 +202,7 @@
                 View
               </button>
               <button 
-                v-if="document.status === 'received'"
+                v-if="document.status === 'received' && document.status !== 'complied'"
                 @click="openResponseModal(document)"
                 class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-300"
               >
@@ -205,9 +210,15 @@
               </button>
               <button 
                 @click="complyDocument(document.id)"
-                class="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-300"
+                :disabled="document.status === 'complied'"
+                :class="[
+                  'flex-1 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2',
+                  document.status === 'complied' 
+                    ? 'bg-gray-500 cursor-not-allowed opacity-75' 
+                    : 'bg-orange-500 hover:bg-orange-600 focus:ring-orange-300'
+                ]"
               >
-                Complied
+                {{ document.status === 'complied' ? 'Complied' : 'Comply' }}
               </button>
               <button 
                 @click="archiveDocument(document.id)"
@@ -443,7 +454,7 @@ const pendingDocuments = computed(() => {
 });
 
 const receivedDocuments = computed(() => {
-  let docs = transformedDocuments.value.filter(doc => doc.status === 'received');
+  let docs = transformedDocuments.value.filter(doc => doc.status === 'received' || doc.status === 'complied');
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase();
     docs = docs.filter(doc =>
@@ -473,6 +484,10 @@ async function fetchDocuments() {
         status: doc.status
       }))
     });
+    
+    // Debug: Check specifically for complied documents
+    const compliedDocs = documents.value.filter(doc => doc.status === 'complied');
+    console.log('Complied documents found:', compliedDocs.length, compliedDocs);
   } catch (error) {
     console.error('Error fetching documents:', error);
   }
@@ -648,7 +663,7 @@ function closePdfModal() {
 }
 
 async function complyDocument(documentId) {
-  if (!confirm('Are you sure you want to mark this document as complied? This will move it to the archived section.')) {
+  if (!confirm('Are you sure you want to mark this document as complied?')) {
     return;
   }
   
@@ -677,14 +692,12 @@ async function complyDocument(documentId) {
     
     if (response.ok) {
       const data = await response.json();
-      showNotificationMessage(data.message || 'Document marked as complied and moved to archived', 'success');
-      await fetchDocuments(); // Refresh the documents list
+      console.log('Comply response:', data);
+      showNotificationMessage(data.message || 'Document marked as complied', 'success');
       
-      // Also refresh archived documents if we're on that tab
-      if (window.location.hash === '#archived' || document.querySelector('[data-archived-documents]')) {
-        // Trigger a custom event to refresh archived documents
-        window.dispatchEvent(new CustomEvent('refreshArchivedDocuments'));
-      }
+      // Refresh the documents list to get updated data from server
+      console.log('Refreshing documents after comply...');
+      await fetchDocuments();
     } else {
       const errorData = await response.json().catch(() => ({}));
       showNotificationMessage(errorData.message || 'Error marking document as complied', 'error');

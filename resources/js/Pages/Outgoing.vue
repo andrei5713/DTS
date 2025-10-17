@@ -52,16 +52,18 @@
         <template #ACTIONS="{ row }">
           <div class="flex gap-2">
             <button 
+              @click="viewDocument(row)"
+              class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+              View
+            </button>
+            <button 
               v-if="row.status === 'received'"
               @click="openResponseModal(row)"
               class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-300"
             >
               Response
             </button>
-            <span v-if="row.status === 'pending'" class="text-yellow-600 text-sm">Pending</span>
-            <span v-else-if="row.status === 'received'" class="text-green-600 text-sm">Received</span>
-            <span v-else-if="row.status === 'forwarded'" class="text-blue-600 text-sm">Forwarded</span>
-            <span v-else-if="row.status === 'rejected'" class="text-red-600 text-sm">Rejected</span>
           </div>
         </template>
       </Table>
@@ -122,6 +124,12 @@
         
         <div class="flex gap-2">
           <button 
+            @click="viewDocument(document)"
+            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            View
+          </button>
+          <button 
             v-if="document.status === 'received'"
             @click="openResponseModal(document)"
             class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-300"
@@ -154,6 +162,14 @@
       :document="responseDocument"
       @close="showResponseModal = false"
     />
+
+    <!-- PDF Preview Modal -->
+    <EnhancedPdfViewer 
+      v-if="showPdfModal" 
+      :document="pdfDocument" 
+      :pdf-url="pdfUrl" 
+      @close="closePdfModal" 
+    />
   </div>
 </template>
 
@@ -166,6 +182,7 @@ import SearchBar from '@/Components/SearchBar.vue';
 import { useDeleteAlert } from '@/composables/useDeleteAlert.js';
 import Notification from '@/Components/Notification.vue';
 import ResponseModal from '@/Components/ResponseModal.vue';
+import EnhancedPdfViewer from '@/Components/EnhancedPdfViewer.vue';
 
 const documents = ref([]);
 
@@ -186,6 +203,11 @@ const notificationType = ref('info');
 // Response modal state
 const showResponseModal = ref(false);
 const responseDocument = ref(null);
+
+// PDF modal state
+const showPdfModal = ref(false);
+const pdfDocument = ref(null);
+const pdfUrl = ref('');
 
 let pollTimer = null;
 
@@ -360,6 +382,23 @@ function showNotificationMessage(message, type = 'info') {
 function openResponseModal(document) {
   responseDocument.value = document;
   showResponseModal.value = true;
+}
+
+function viewDocument(document) {
+  // Show PDF preview modal
+  pdfDocument.value = document;
+  if (document.file_path) {
+    pdfUrl.value = `/storage/${document.file_path}`;
+  } else {
+    pdfUrl.value = "";
+  }
+  showPdfModal.value = true;
+}
+
+function closePdfModal() {
+  showPdfModal.value = false;
+  pdfUrl.value = "";
+  pdfDocument.value = null;
 }
 
 

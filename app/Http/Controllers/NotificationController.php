@@ -26,18 +26,18 @@ class NotificationController extends Controller
         ]);
     }
     
-    public function markAsRead($notificationId)
+    public function markAsRead(Notification $notification)
     {
         $user = Auth::user();
         
-        // Scope the notification lookup to the authenticated user
-        $notification = Notification::forUser($user->id)->where('id', $notificationId)->first();
-        if (!$notification) {
-            Log::warning('Notification not found or not owned by user when marking as read', [
-                'notification_id' => $notificationId,
+        // Ensure user can only mark their own notifications as read
+        if ($notification->user_id !== $user->id) {
+            Log::warning('Unauthorized attempt to mark notification as read', [
+                'notification_id' => $notification->id,
                 'user_id' => $user->id,
+                'notification_user_id' => $notification->user_id
             ]);
-            return response()->json(['error' => 'Not found'], 404);
+            return response()->json(['error' => 'Unauthorized'], 403);
         }
         
         // Log the attempt

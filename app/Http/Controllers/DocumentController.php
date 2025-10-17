@@ -456,9 +456,9 @@ class DocumentController extends Controller
             'compliance_notes' => 'nullable|string|max:1000',
         ]);
 
-        // Update document with compliance information and move to archived
+        // Update document with compliance information
         $document->update([
-            'status' => 'archived',
+            'status' => 'complied',
             'complied_by' => $user->name,
             'complied_at' => now(),
             'compliance_notes' => $request->compliance_notes,
@@ -469,7 +469,7 @@ class DocumentController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Document marked as complied and moved to archived documents.'
+            'message' => 'Document marked as complied successfully.'
         ]);
     }
 
