@@ -49,6 +49,7 @@ class Document extends Model
     protected $casts = [
         'document_date' => 'date',
         'entry_date' => 'date',
+        'accepted_by_do_at' => 'datetime',
     ];
 
     public function uploadByUser()

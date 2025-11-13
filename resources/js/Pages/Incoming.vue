@@ -97,6 +97,35 @@
       <!-- Table View -->
       <div v-if="receivedViewMode === 'table'">
       <Table :columns="receivedColumns" :rows="receivedDocuments">
+        <template #duration="{ row }">
+          <div 
+            v-if="row.status === 'received' && getReceivedDate(row)"
+            @click="openTimerModal(row)"
+            class="cursor-pointer"
+          >
+            <div 
+              class="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md transition-transform hover:scale-105"
+              :class="calculateTimerStatus(row).color"
+              :title="calculateTimerStatus(row).isOverdue ? 'Overdue' : `${calculateTimerStatus(row).daysRemaining} days remaining`"
+            >
+              {{ calculateTimerStatus(row).isOverdue ? '0' : calculateTimerStatus(row).daysRemaining }}
+            </div>
+          </div>
+          <div v-else class="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-200 text-gray-500 text-sm">
+            -
+          </div>
+        </template>
+        <template #priority="{ row }">
+          <span class="inline-flex items-center gap-2 text-sm font-medium text-gray-900">
+            <span class="w-2.5 h-2.5 rounded-full" :class="getPriorityCircleColor(row.priority)"></span>
+            {{ row.priority || '-' }}
+          </span>
+        </template>
+        <template #status="{ row }">
+          <span class="text-sm font-semibold capitalize" :class="getStatusTextColor(row.status)">
+            {{ row.status || '-' }}
+          </span>
+        </template>
         <template #ACTIONS="{ row }">
                       <div class="flex gap-2">
               <button 
@@ -188,9 +217,12 @@
                 <span class="text-gray-500">Office:</span>
                 <span class="text-gray-700">{{ document.originating_office }}</span>
               </div>
-              <div class="flex justify-between text-xs">
+              <div class="flex justify-between text-xs items-center">
                 <span class="text-gray-500">Priority:</span>
-                <span class="text-gray-700">{{ document.priority }}</span>
+                <span class="inline-flex items-center gap-2 text-xs" :class="getPriorityTextColor(document.priority)">
+                  <span class="w-2.5 h-2.5 rounded-full" :class="getPriorityCircleColor(document.priority)"></span>
+                  {{ document.priority }}
+                </span>
               </div>
             </div>
             
@@ -259,6 +291,117 @@
       :document="responseDocument"
       @close="showResponseModal = false"
     />
+    
+    <!-- Timer Modal -->
+    <div v-if="showTimerModal" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="fixed inset-0 bg-black bg-opacity-50" @click="closeTimerModal"></div>
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full">
+          <div class="px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">Document Timer</h3>
+            <p class="text-sm text-gray-600 mt-1">{{ timerDocument?.subject }}</p>
+          </div>
+          <div class="p-6">
+            <div v-if="timerDocument" class="space-y-4">
+              <div v-if="timerDocument.status === 'received' && getReceivedDate(timerDocument)" class="space-y-3">
+                <!-- Live Countdown Timer -->
+                <div :class="calculateTimerStatus(timerDocument).isOverdue ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'" class="rounded-lg p-6 text-white">
+                  <h4 class="text-sm font-medium text-white/90 mb-3 text-center">{{ calculateTimerStatus(timerDocument).isOverdue ? 'Time Expired' : 'Time Remaining' }}</h4>
+                  <div class="flex items-center justify-center gap-4">
+                    <div class="text-center">
+                      <div class="text-4xl font-bold">{{ String(timerCountdown.days).padStart(2, '0') }}</div>
+                      <div class="text-xs font-medium text-white/80 mt-1">Days</div>
+                    </div>
+                    <div class="text-3xl font-bold">:</div>
+                    <div class="text-center">
+                      <div class="text-4xl font-bold">{{ String(timerCountdown.hours).padStart(2, '0') }}</div>
+                      <div class="text-xs font-medium text-white/80 mt-1">Hours</div>
+                    </div>
+                    <div class="text-3xl font-bold">:</div>
+                    <div class="text-center">
+                      <div class="text-4xl font-bold">{{ String(timerCountdown.minutes).padStart(2, '0') }}</div>
+                      <div class="text-xs font-medium text-white/80 mt-1">Minutes</div>
+                    </div>
+                    <div class="text-3xl font-bold">:</div>
+                    <div class="text-center">
+                      <div class="text-4xl font-bold">{{ String(timerCountdown.seconds).padStart(2, '0') }}</div>
+                      <div class="text-xs font-medium text-white/80 mt-1">Seconds</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-4 rounded-lg" :class="calculateTimerStatus(timerDocument).isOverdue ? 'bg-yellow-50 border-2 border-yellow-300' : 'bg-blue-50 border-2 border-blue-300'">
+                  <div class="flex-1 flex items-center justify-between">
+                    <div>
+                      <h4 class="text-sm font-medium text-gray-700 mb-1">Priority Level</h4>
+                      <p class="text-base font-semibold text-gray-900">{{ timerDocument.priority }}</p>
+                    </div>
+                    <div class="text-right">
+                      <h4 class="text-sm font-medium text-gray-700 mb-1">Processing Time</h4>
+                      <p class="text-base font-semibold text-gray-900">{{ getPriorityDays(timerDocument.priority) }} days</p>
+                    </div>
+                  </div>
+                  <div 
+                    class="w-16 h-16 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-md ml-4 flex-shrink-0"
+                    :class="calculateTimerStatus(timerDocument).color"
+                  >
+                    {{ calculateTimerStatus(timerDocument).isOverdue ? '0' : calculateTimerStatus(timerDocument).daysRemaining }}
+                  </div>
+                </div>
+                
+                <div class="bg-gray-50 rounded-lg p-4 mt-4">
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1">
+                      <h4 class="text-sm font-medium text-gray-700 mb-2">Received By</h4>
+                      <p class="text-sm text-gray-900 font-semibold">{{ timerDocument.current_recipient?.name || timerDocument.upload_to_user?.name || timerDocument.upload_to || 'N/A' }}</p>
+                      <p class="text-xs text-gray-600 mt-1">
+                        {{ getReceivedDate(timerDocument).toLocaleString() }}
+                      </p>
+                    </div>
+                    <div class="flex-shrink-0 text-right">
+                      <p class="text-xs text-gray-600 mb-2">Handling Duration</p>
+                      <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-0.5">
+                          <span class="text-sm font-bold text-gray-900">{{ handlingDuration.days }}</span>
+                          <span class="text-xs text-gray-600">d</span>
+                        </div>
+                        <span class="text-gray-400">:</span>
+                        <div class="flex items-center gap-0.5">
+                          <span class="text-sm font-bold text-gray-900">{{ String(handlingDuration.hours).padStart(2, '0') }}</span>
+                          <span class="text-xs text-gray-600">h</span>
+                        </div>
+                        <span class="text-gray-400">:</span>
+                        <div class="flex items-center gap-0.5">
+                          <span class="text-sm font-bold text-gray-900">{{ String(handlingDuration.minutes).padStart(2, '0') }}</span>
+                          <span class="text-xs text-gray-600">m</span>
+                        </div>
+                        <span class="text-gray-400">:</span>
+                        <div class="flex items-center gap-0.5">
+                          <span class="text-sm font-bold text-gray-900">{{ String(handlingDuration.seconds).padStart(2, '0') }}</span>
+                          <span class="text-xs text-gray-600">s</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div v-else class="text-center py-8 text-gray-500">
+                <p>Timer starts when document is accepted/received</p>
+              </div>
+            </div>
+          </div>
+          <div class="px-6 py-4 border-t flex justify-end">
+            <button 
+              @click="closeTimerModal" 
+              class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
     
     <!-- Forward Modal -->
     <div v-if="showForwardModal" class="fixed inset-0 z-50 overflow-y-auto">
@@ -346,7 +489,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { Archive } from 'lucide-vue-next';
 import Table from '@/Components/Table.vue';
@@ -407,6 +550,13 @@ const rejectForm = ref({
 const showResponseModal = ref(false);
 const responseDocument = ref(null);
 
+// Timer modal state
+const showTimerModal = ref(false);
+const timerDocument = ref(null);
+const timerCountdown = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+const handlingDuration = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+let timerInterval = null;
+
 
 
 
@@ -418,6 +568,7 @@ const approvalColumns = [
 ];
 
 const receivedColumns = [
+  { label: 'DURATION', key: 'duration' },
   { label: 'TRACKING CODE', key: 'tracking_code' },
   { label: 'DOCUMENT TYPE', key: 'document_type' },
   { label: 'SUBJECT', key: 'subject' },
@@ -756,6 +907,235 @@ async function archiveDocument(documentId) {
   }
 }
 
+// ARTA Color Palette for Priorities - Circle Indicator
+// Simple (3 days) → Blue
+// Complex (7 days) → Red
+// Highly Technical (20 days) → Yellow
+function getPriorityCircleColor(priority) {
+  if (!priority) return 'bg-gray-400'
+  
+  const priorityLower = priority.toLowerCase()
+  
+  if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
+    return 'bg-blue-500'
+  } else if (priorityLower.includes('complex') || priorityLower.includes('7 days')) {
+    return 'bg-red-500'
+  } else if (priorityLower.includes('highly technical') || priorityLower.includes('20 days')) {
+    return 'bg-yellow-500'
+  }
+  
+  return 'bg-gray-400'
+}
+
+function getPriorityTextColor(priority) {
+  if (!priority) return 'text-gray-600'
+  
+  const priorityLower = priority.toLowerCase()
+  
+  if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
+    return 'text-blue-600 font-semibold'
+  } else if (priorityLower.includes('complex') || priorityLower.includes('7 days')) {
+    return 'text-red-600 font-semibold'
+  } else if (priorityLower.includes('highly technical') || priorityLower.includes('20 days')) {
+    return 'text-yellow-600 font-semibold'
+  }
+  
+  return 'text-gray-600'
+}
+
+function getStatusTextColor(status) {
+  if (!status) return 'text-gray-600'
+  
+  const statusLower = status.toLowerCase()
+  
+  if (statusLower === 'pending') {
+    return 'text-yellow-600'
+  } else if (statusLower === 'received') {
+    return 'text-green-600'
+  } else if (statusLower === 'rejected') {
+    return 'text-red-600'
+  } else if (statusLower === 'forwarded') {
+    return 'text-blue-600'
+  } else if (statusLower === 'complied') {
+    return 'text-purple-600'
+  } else if (statusLower === 'archived') {
+    return 'text-gray-600'
+  }
+  
+  return 'text-gray-600'
+}
+
+// Timer functions
+function getPriorityDays(priority) {
+  if (!priority) return 0
+  
+  const priorityLower = priority.toLowerCase()
+  
+  if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
+    return 3
+  } else if (priorityLower.includes('complex') || priorityLower.includes('7 days')) {
+    return 7
+  } else if (priorityLower.includes('highly technical') || priorityLower.includes('20 days')) {
+    return 20
+  }
+  
+  return 0
+}
+
+function getReceivedDate(document) {
+  // Only use accepted_by_do_at - this is the actual timestamp when document was accepted/received
+  // Don't use updated_at as it may change for other reasons
+  if (document.accepted_by_do_at) {
+    // Parse the date string - handle both ISO format and other formats
+    const date = new Date(document.accepted_by_do_at)
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.error('Invalid accepted_by_do_at date:', document.accepted_by_do_at)
+      return null
+    }
+    return date
+  }
+  // If no accepted_by_do_at, document hasn't been accepted yet - return null
+  return null
+}
+
+function calculateTimerStatus(document) {
+  if (!document || document.status !== 'received') {
+    return { color: 'bg-gray-300', daysRemaining: 0, daysElapsed: 0, isOverdue: false, receivedDate: null, priorityDays: 0 }
+  }
+  
+  const priorityDays = getPriorityDays(document.priority)
+  const receivedDate = getReceivedDate(document)
+  
+  if (!receivedDate || priorityDays === 0) {
+    return { color: 'bg-gray-300', daysRemaining: 0, daysElapsed: 0, isOverdue: false, receivedDate: null, priorityDays: 0 }
+  }
+  
+  const now = new Date()
+  // Reset time to start of day for accurate day calculation
+  const receivedStartOfDay = new Date(receivedDate)
+  receivedStartOfDay.setHours(0, 0, 0, 0)
+  const nowStartOfDay = new Date(now)
+  nowStartOfDay.setHours(0, 0, 0, 0)
+  
+  const diffTime = nowStartOfDay - receivedStartOfDay
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  const daysRemaining = priorityDays - diffDays
+  const isOverdue = diffDays >= priorityDays
+  
+  return {
+    color: isOverdue ? 'bg-yellow-500' : 'bg-blue-500',
+    daysRemaining: isOverdue ? 0 : daysRemaining,
+    daysElapsed: diffDays,
+    isOverdue: isOverdue,
+    receivedDate: receivedDate,
+    priorityDays: priorityDays
+  }
+}
+
+function openTimerModal(document) {
+  timerDocument.value = document
+  showTimerModal.value = true
+  startTimerCountdown(document)
+}
+
+function startTimerCountdown(document) {
+  // Clear any existing interval
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
+  
+  // Only start timer if document is received
+  if (!document || document.status !== 'received') {
+    timerCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+    return
+  }
+  
+  const priorityDays = getPriorityDays(document.priority)
+  const receivedDate = getReceivedDate(document)
+  
+  if (!receivedDate || priorityDays === 0) {
+    timerCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+    return
+  }
+  
+  // Calculate deadline based on priority days from the exact received timestamp
+  // Add the full priority days to the exact received time
+  // For example: if received at 5:47 AM on Jan 1 with 3-day priority, deadline is 5:47 AM on Jan 4
+  const deadline = new Date(receivedDate)
+  deadline.setDate(deadline.getDate() + priorityDays)
+  
+  // Update countdown immediately
+  updateCountdown(deadline)
+  updateHandlingDuration()
+  
+  // Update countdown every second
+  timerInterval = setInterval(() => {
+    updateCountdown(deadline)
+  }, 1000)
+}
+
+function updateCountdown(deadline) {
+  const now = new Date()
+  let diff = deadline - now
+  
+  if (diff <= 0) {
+    // Timer has expired - show 00:00:00:00
+    timerCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+    // Don't clear the interval so it keeps showing 00:00:00:00
+  } else {
+    // Calculate days, hours, minutes, seconds from the difference
+    const totalSeconds = Math.floor(diff / 1000)
+    const days = Math.floor(totalSeconds / (24 * 60 * 60))
+    const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60))
+    const minutes = Math.floor((totalSeconds % (60 * 60)) / 60)
+    const seconds = totalSeconds % 60
+    
+    timerCountdown.value = { days, hours, minutes, seconds }
+  }
+  
+  // Update handling duration (how long user has been handling the document)
+  updateHandlingDuration()
+}
+
+function updateHandlingDuration() {
+  if (!timerDocument.value) return
+  
+  const receivedDate = getReceivedDate(timerDocument.value)
+  if (!receivedDate) {
+    handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+    return
+  }
+  
+  const now = new Date()
+  const diff = now - receivedDate
+  
+  if (diff <= 0) {
+    handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+    return
+  }
+  
+  // Calculate how long the document has been handled
+  const totalSeconds = Math.floor(diff / 1000)
+  const days = Math.floor(totalSeconds / (24 * 60 * 60))
+  const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60))
+  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60)
+  const seconds = totalSeconds % 60
+  
+  handlingDuration.value = { days, hours, minutes, seconds }
+}
+
+function closeTimerModal() {
+  showTimerModal.value = false
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
+  timerCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+  handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+}
+
 function showNotificationMessage(message, type = 'info') {
   notificationMessage.value = message;
   notificationType.value = type;
@@ -830,5 +1210,19 @@ onMounted(() => {
 onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer);
   window.removeEventListener('refreshIncomingDocuments', fetchDocuments);
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+});
+
+// Watch for modal close to clean up timer
+watch(showTimerModal, (newValue) => {
+  if (!newValue && timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    timerCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  }
 });
 </script> 

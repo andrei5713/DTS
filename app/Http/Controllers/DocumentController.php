@@ -218,9 +218,13 @@ class DocumentController extends Controller
         }
 
         // Update document status to received for the user who accepted
+        // Always update accepted_by_do_at to track when document was actually received (for timer)
+        // This ensures the timer starts from the current time, not an old timestamp
         $document->update([
             'status' => 'received',
             'current_recipient_id' => $user->id,
+            'accepted_by_do_at' => now(), // Always set to current time when received
+            'accepted_by_do_id' => $user->id, // Track who accepted it
         ]);
 
         // Determine the next recipient (usually the intended upload_to user when DO accepts)
@@ -371,7 +375,7 @@ class DocumentController extends Controller
 
             // Create a forwarded copy for each recipient; keep original in received for forwarder
             $copy = $document->replicate([
-                'id', 'created_at', 'updated_at', 'responded_at', 'complied_at', 'archived_at', 'unarchived_at'
+                'id', 'created_at', 'updated_at', 'responded_at', 'complied_at', 'archived_at', 'unarchived_at', 'accepted_by_do_at', 'accepted_by_do_id'
             ]);
             // Auto-deliver forwarded copy to recipient's Received
             $copy->status = 'received';
@@ -380,6 +384,10 @@ class DocumentController extends Controller
             // Mark forwarder as uploader for outgoing visibility
             $copy->upload_by = $user->name;
             $copy->upload_by_user_id = $user->id;
+            // Set accepted_by_do_at to now() for forwarded copies since they're automatically delivered
+            // The timer starts when the forwarded copy is created and delivered to recipient
+            $copy->accepted_by_do_at = now();
+            $copy->accepted_by_do_id = $forwardToUser->id;
             // Set intended recipient fields to the selected user
             $copy->upload_to = $forwardToUser->name;
             $copy->upload_to_user_id = $forwardToUser->id;
@@ -765,13 +773,23 @@ class DocumentController extends Controller
         ]);
 
         // Update document to move it back to incoming status
-        $document->update([
+        // Note: When unarchiving, we don't set accepted_by_do_at because the document was already received before
+        // The timer should continue from when it was originally received, not restart
+        // Only set accepted_by_do_at if it doesn't exist (document was never received before)
+        $updateData = [
             'status' => 'received',
             'current_recipient_id' => $user->id, // Set current user as recipient
             'unarchived_by' => $user->name,
             'unarchived_at' => now(),
             'unarchive_notes' => $request->unarchive_notes,
-        ]);
+        ];
+        
+        // Only set accepted_by_do_at if it wasn't set before (document was archived before being received)
+        if (!$document->accepted_by_do_at) {
+            $updateData['accepted_by_do_at'] = now();
+        }
+        
+        $document->update($updateData);
 
         return response()->json([
             'success' => true,
