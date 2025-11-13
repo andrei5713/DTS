@@ -287,6 +287,8 @@ let pdfDoc = null
 let pdfjsLib = null
 
 // ARTA Color Palette for Priorities - Circle Indicator
+// Instant (3 seconds) → Gray
+// Regular (1 day) → Green
 // Simple (3 days) → Blue
 // Complex (7 days) → Red
 // Highly Technical (20 days) → Yellow
@@ -295,7 +297,11 @@ function getPriorityCircleColor(priority) {
   
   const priorityLower = priority.toLowerCase()
   
-  if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
+  if (priorityLower.includes('instant') || priorityLower.includes('3 seconds')) {
+    return 'bg-gray-500'
+  } else if (priorityLower.includes('regular') || priorityLower.includes('1 day')) {
+    return 'bg-green-500'
+  } else if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
     return 'bg-blue-500'
   } else if (priorityLower.includes('complex') || priorityLower.includes('7 days')) {
     return 'bg-red-500'
@@ -311,7 +317,11 @@ function getPriorityTextColor(priority) {
   
   const priorityLower = priority.toLowerCase()
   
-  if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
+  if (priorityLower.includes('instant') || priorityLower.includes('3 seconds')) {
+    return 'text-gray-600 font-semibold'
+  } else if (priorityLower.includes('regular') || priorityLower.includes('1 day')) {
+    return 'text-green-600 font-semibold'
+  } else if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
     return 'text-blue-600 font-semibold'
   } else if (priorityLower.includes('complex') || priorityLower.includes('7 days')) {
     return 'text-red-600 font-semibold'

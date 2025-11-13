@@ -50,18 +50,15 @@
     <div v-if="viewMode === 'table'">
       <Table :columns="columns" :rows="documents">
         <template #duration="{ row }">
-          <div 
-            v-if="row.status === 'received' && getReceivedDate(row)"
+          <div v-if="row.status === 'received' && getReceivedDate(row)">
+            <ProgressRing
+              :percentage="getDurationPercentage(row)"
+              :display-text="getDurationDisplayText(row)"
+              :is-overdue="calculateTimerStatus(row).isOverdue"
+              :clickable="true"
+              :title="getDurationTooltip(row)"
             @click="openTimerModal(row)"
-            class="cursor-pointer"
-          >
-            <div 
-              class="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md transition-transform hover:scale-105"
-              :class="calculateTimerStatus(row).color"
-              :title="calculateTimerStatus(row).isOverdue ? 'Overdue' : `${calculateTimerStatus(row).daysRemaining} days remaining`"
-            >
-              {{ calculateTimerStatus(row).isOverdue ? '0' : calculateTimerStatus(row).daysRemaining }}
-            </div>
+            />
           </div>
           <div v-else class="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-200 text-gray-500 text-sm">
             -
@@ -216,12 +213,12 @@
             <div v-if="timerDocument" class="space-y-4">
               <div v-if="timerDocument.status === 'received' && getReceivedDate(timerDocument)" class="space-y-3">
                 <!-- Live Countdown Timer -->
-                <div :class="calculateTimerStatus(timerDocument).isOverdue ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'" class="rounded-lg p-6 text-white">
-                  <h4 class="text-sm font-medium text-white/90 mb-3 text-center">{{ calculateTimerStatus(timerDocument).isOverdue ? 'Time Expired' : 'Time Remaining' }}</h4>
+                <div v-if="!calculateTimerStatus(timerDocument).isOverdue" class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
+                  <h4 class="text-sm font-medium text-white/90 mb-3 text-center">Time Remaining</h4>
                   <div class="flex items-center justify-center gap-4">
                     <div class="text-center">
                       <div class="text-4xl font-bold">{{ String(timerCountdown.days).padStart(2, '0') }}</div>
-                      <div class="text-xs font-medium text-white/80 mt-1">Days</div>
+                      <div class="text-xs font-medium text-white/80 mt-1">{{ timerCountdown.days === 1 ? 'Day' : 'Days' }}</div>
                     </div>
                     <div class="text-3xl font-bold">:</div>
                     <div class="text-center">
@@ -241,7 +238,33 @@
                   </div>
                 </div>
                 
-                <div class="flex items-center justify-between p-4 rounded-lg" :class="calculateTimerStatus(timerDocument).isOverdue ? 'bg-yellow-50 border-2 border-yellow-300' : 'bg-blue-50 border-2 border-blue-300'">
+                <!-- Overdue Timer -->
+                <div v-else class="bg-gradient-to-r from-red-500 to-red-600 rounded-lg p-6 text-white">
+                  <h4 class="text-sm font-medium text-white/90 mb-3 text-center">Time Expired - Overdue</h4>
+                  <div class="flex items-center justify-center gap-4">
+                    <div class="text-center">
+                      <div class="text-4xl font-bold">{{ String(overdueTimePassed.days).padStart(2, '0') }}</div>
+                      <div class="text-xs font-medium text-white/80 mt-1">{{ overdueTimePassed.days === 1 ? 'Day' : 'Days' }}</div>
+                    </div>
+                    <div class="text-3xl font-bold">:</div>
+                    <div class="text-center">
+                      <div class="text-4xl font-bold">{{ String(overdueTimePassed.hours).padStart(2, '0') }}</div>
+                      <div class="text-xs font-medium text-white/80 mt-1">Hours</div>
+                    </div>
+                    <div class="text-3xl font-bold">:</div>
+                    <div class="text-center">
+                      <div class="text-4xl font-bold">{{ String(overdueTimePassed.minutes).padStart(2, '0') }}</div>
+                      <div class="text-xs font-medium text-white/80 mt-1">Minutes</div>
+                    </div>
+                    <div class="text-3xl font-bold">:</div>
+                    <div class="text-center">
+                      <div class="text-4xl font-bold">{{ String(overdueTimePassed.seconds).padStart(2, '0') }}</div>
+                      <div class="text-xs font-medium text-white/80 mt-1">Seconds</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-4 rounded-lg" :class="calculateTimerStatus(timerDocument).isOverdue ? 'bg-red-50 border-2 border-red-300' : 'bg-green-50 border-2 border-green-300'">
                   <div class="flex-1 flex items-center justify-between">
                     <div>
                       <h4 class="text-sm font-medium text-gray-700 mb-1">Priority Level</h4>
@@ -249,14 +272,20 @@
                     </div>
                     <div class="text-right">
                       <h4 class="text-sm font-medium text-gray-700 mb-1">Processing Time</h4>
-                      <p class="text-base font-semibold text-gray-900">{{ getPriorityDays(timerDocument.priority) }} days</p>
+                      <p class="text-base font-semibold text-gray-900" v-if="timerDocument.priority && timerDocument.priority.toLowerCase().includes('instant')">3 seconds</p>
+                      <p class="text-base font-semibold text-gray-900" v-else>{{ getPriorityDays(timerDocument.priority) }} {{ getPriorityDays(timerDocument.priority) === 1 ? 'day' : 'days' }}</p>
                     </div>
                   </div>
-                  <div 
-                    class="w-16 h-16 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-md ml-4 flex-shrink-0"
-                    :class="calculateTimerStatus(timerDocument).color"
-                  >
-                    {{ calculateTimerStatus(timerDocument).isOverdue ? '0' : calculateTimerStatus(timerDocument).daysRemaining }}
+                  <div class="ml-4 flex-shrink-0">
+                    <ProgressRing
+                      :percentage="getDurationPercentage(timerDocument)"
+                      :display-text="getDurationDisplayText(timerDocument)"
+                      :is-overdue="calculateTimerStatus(timerDocument).isOverdue"
+                      :clickable="false"
+                      :size="64"
+                      :stroke-width="5"
+                      :title="getDurationTooltip(timerDocument)"
+                    />
                   </div>
                 </div>
                 
@@ -326,6 +355,7 @@ import { useDeleteAlert } from '@/composables/useDeleteAlert.js';
 import Notification from '@/Components/Notification.vue';
 import ResponseModal from '@/Components/ResponseModal.vue';
 import EnhancedPdfViewer from '@/Components/EnhancedPdfViewer.vue';
+import ProgressRing from '@/Components/ProgressRing.vue';
 
 const documents = ref([]);
 
@@ -351,6 +381,7 @@ const responseDocument = ref(null);
 const showTimerModal = ref(false);
 const timerDocument = ref(null);
 const timerCountdown = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+const overdueTimePassed = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 const handlingDuration = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 let timerInterval = null;
 
@@ -360,6 +391,10 @@ const pdfDocument = ref(null);
 const pdfUrl = ref('');
 
 let pollTimer = null;
+let realTimeUpdateInterval = null;
+
+// Reactive timestamp that updates every second for real-time duration updates
+const currentTime = ref(new Date());
 
 // Get current user from page props
 const page = usePage();
@@ -525,6 +560,8 @@ async function handleUpload(uploadData) {
 
 
 // ARTA Color Palette for Priorities - Circle Indicator
+// Instant (3 seconds) → Gray
+// Regular (1 day) → Green
 // Simple (3 days) → Blue
 // Complex (7 days) → Red
 // Highly Technical (20 days) → Yellow
@@ -533,7 +570,11 @@ function getPriorityCircleColor(priority) {
   
   const priorityLower = priority.toLowerCase()
   
-  if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
+  if (priorityLower.includes('instant') || priorityLower.includes('3 seconds')) {
+    return 'bg-gray-500'
+  } else if (priorityLower.includes('regular') || priorityLower.includes('1 day')) {
+    return 'bg-green-500'
+  } else if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
     return 'bg-blue-500'
   } else if (priorityLower.includes('complex') || priorityLower.includes('7 days')) {
     return 'bg-red-500'
@@ -549,7 +590,11 @@ function getPriorityTextColor(priority) {
   
   const priorityLower = priority.toLowerCase()
   
-  if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
+  if (priorityLower.includes('instant') || priorityLower.includes('3 seconds')) {
+    return 'text-gray-600 font-semibold'
+  } else if (priorityLower.includes('regular') || priorityLower.includes('1 day')) {
+    return 'text-green-600 font-semibold'
+  } else if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
     return 'text-blue-600 font-semibold'
   } else if (priorityLower.includes('complex') || priorityLower.includes('7 days')) {
     return 'text-red-600 font-semibold'
@@ -588,7 +633,11 @@ function getPriorityDays(priority) {
   
   const priorityLower = priority.toLowerCase()
   
-  if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
+  if (priorityLower.includes('instant') || priorityLower.includes('3 seconds')) {
+    return 3 / 86400 // 3 seconds in days (approximately 0.000034722)
+  } else if (priorityLower.includes('regular') || priorityLower.includes('1 day')) {
+    return 1
+  } else if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
     return 3
   } else if (priorityLower.includes('complex') || priorityLower.includes('7 days')) {
     return 7
@@ -618,27 +667,54 @@ function getReceivedDate(document) {
 
 function calculateTimerStatus(document) {
   if (!document || document.status !== 'received') {
-    return { color: 'bg-gray-300', daysRemaining: 0, daysElapsed: 0, isOverdue: false, receivedDate: null, priorityDays: 0 }
+    return { color: 'bg-gray-300', daysRemaining: 0, daysElapsed: 0, isOverdue: false, receivedDate: null, priorityDays: 0, isInstant: false }
   }
   
   const priorityDays = getPriorityDays(document.priority)
   const receivedDate = getReceivedDate(document)
+  const isInstant = document.priority && document.priority.toLowerCase().includes('instant')
   
   if (!receivedDate || priorityDays === 0) {
-    return { color: 'bg-gray-300', daysRemaining: 0, daysElapsed: 0, isOverdue: false, receivedDate: null, priorityDays: 0 }
+    return { color: 'bg-gray-300', daysRemaining: 0, daysElapsed: 0, isOverdue: false, receivedDate: null, priorityDays: 0, isInstant: false }
   }
   
-  const now = new Date()
-  // Reset time to start of day for accurate day calculation
-  const receivedStartOfDay = new Date(receivedDate)
-  receivedStartOfDay.setHours(0, 0, 0, 0)
-  const nowStartOfDay = new Date(now)
-  nowStartOfDay.setHours(0, 0, 0, 0)
+  // Use reactive currentTime to trigger real-time updates
+  const now = currentTime.value
   
-  const diffTime = nowStartOfDay - receivedStartOfDay
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-  const daysRemaining = priorityDays - diffDays
-  const isOverdue = diffDays >= priorityDays
+  // For Instant priority (3 seconds), use milliseconds precision
+  if (isInstant) {
+    const diffTime = now - receivedDate // milliseconds
+    const diffSeconds = diffTime / 1000
+    const secondsRemaining = 3 - diffSeconds
+    const isOverdue = diffSeconds >= 3
+    
+    return {
+      color: isOverdue ? 'bg-red-500' : 'bg-gray-500',
+      daysRemaining: isOverdue ? 0 : secondsRemaining,
+      daysElapsed: diffSeconds,
+      isOverdue: isOverdue,
+      receivedDate: receivedDate,
+      priorityDays: 3, // 3 seconds
+      isInstant: true
+    }
+  }
+  
+  // For other priorities, calculate exact deadline and remaining time
+  // Calculate deadline by adding exact priority days to received time
+  const deadline = new Date(receivedDate)
+  deadline.setDate(deadline.getDate() + priorityDays)
+  
+  // Calculate remaining time from exact deadline
+  const diffTime = deadline - now
+  const isOverdue = diffTime <= 0
+  
+  // Calculate remaining days (can be fractional)
+  const totalSecondsRemaining = Math.max(0, diffTime / 1000)
+  const daysRemaining = totalSecondsRemaining / (24 * 60 * 60)
+  
+  // Calculate elapsed days for display
+  const elapsedTime = now - receivedDate
+  const diffDays = Math.floor(elapsedTime / (1000 * 60 * 60 * 24))
   
   return {
     color: isOverdue ? 'bg-yellow-500' : 'bg-blue-500',
@@ -646,8 +722,46 @@ function calculateTimerStatus(document) {
     daysElapsed: diffDays,
     isOverdue: isOverdue,
     receivedDate: receivedDate,
-    priorityDays: priorityDays
+    priorityDays: priorityDays,
+    isInstant: false
   }
+}
+
+function getDurationPercentage(document) {
+  const timerStatus = calculateTimerStatus(document)
+  if (!timerStatus.priorityDays || timerStatus.priorityDays === 0) {
+    return 0
+  }
+  if (timerStatus.isOverdue) {
+    return 100 // Show 100% filled circle when overdue
+  }
+  // Calculate percentage: (daysRemaining / priorityDays) * 100
+  return Math.max(0, Math.min(100, (timerStatus.daysRemaining / timerStatus.priorityDays) * 100))
+}
+
+function getDurationDisplayText(document) {
+  const timerStatus = calculateTimerStatus(document)
+  if (timerStatus.isOverdue) {
+    return 'Due'
+  }
+  if (timerStatus.isInstant) {
+    const seconds = Math.max(0, Math.floor(timerStatus.daysRemaining))
+    return seconds
+  }
+  // For day-based priorities, round down to show whole days remaining
+  return Math.max(0, Math.floor(timerStatus.daysRemaining))
+}
+
+function getDurationTooltip(document) {
+  const timerStatus = calculateTimerStatus(document)
+  if (timerStatus.isOverdue) {
+    return 'Overdue - Time expired'
+  }
+  if (timerStatus.isInstant) {
+    const seconds = Math.max(0, Math.floor(timerStatus.daysRemaining))
+    return `${seconds} ${seconds === 1 ? 'second' : 'seconds'} remaining`
+  }
+  return `${timerStatus.daysRemaining} ${timerStatus.daysRemaining === 1 ? 'day' : 'days'} remaining`
 }
 
 function openTimerModal(document) {
@@ -678,10 +792,17 @@ function startTimerCountdown(document) {
   }
   
   // Calculate deadline based on priority days from the exact received timestamp
-  // Add the full priority days to the exact received time
-  // For example: if received at 5:47 AM on Jan 1 with 3-day priority, deadline is 5:47 AM on Jan 4
+  const isInstant = document.priority && document.priority.toLowerCase().includes('instant')
   const deadline = new Date(receivedDate)
-  deadline.setDate(deadline.getDate() + priorityDays)
+  
+  if (isInstant) {
+    // For Instant priority, add 3 seconds
+    deadline.setTime(deadline.getTime() + 3000)
+  } else {
+    // For other priorities, add the full priority days to the exact received time
+    // For example: if received at 5:47 AM on Jan 1 with 3-day priority, deadline is 5:47 AM on Jan 4
+    deadline.setDate(deadline.getDate() + priorityDays)
+  }
   
   // Update countdown immediately
   updateCountdown(deadline)
@@ -698,9 +819,16 @@ function updateCountdown(deadline) {
   let diff = deadline - now
   
   if (diff <= 0) {
-    // Timer has expired - show 00:00:00:00
+    // Timer has expired - show 00:00:00:00 for countdown
     timerCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
-    // Don't clear the interval so it keeps showing 00:00:00:00
+    // Calculate overdue time passed
+    const overdueDiff = now - deadline
+    const totalSeconds = Math.floor(overdueDiff / 1000)
+    const days = Math.floor(totalSeconds / (24 * 60 * 60))
+    const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60))
+    const minutes = Math.floor((totalSeconds % (60 * 60)) / 60)
+    const seconds = totalSeconds % 60
+    overdueTimePassed.value = { days, hours, minutes, seconds }
   } else {
     // Calculate days, hours, minutes, seconds from the difference
     const totalSeconds = Math.floor(diff / 1000)
@@ -710,30 +838,94 @@ function updateCountdown(deadline) {
     const seconds = totalSeconds % 60
     
     timerCountdown.value = { days, hours, minutes, seconds }
+    overdueTimePassed.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
   }
   
   // Update handling duration (how long user has been handling the document)
   updateHandlingDuration()
 }
 
+function getUserReceivedDate(document) {
+  // If document was forwarded to current user, use when they received it
+  if (document.current_recipient_id === currentUser.value?.id && document.forwarded_by) {
+    // If there's a specific field for when current recipient received it, use that
+    // Otherwise, use accepted_by_do_at which should be when they accepted it
+    if (document.current_recipient_received_at) {
+      const date = new Date(document.current_recipient_received_at)
+      if (!isNaN(date.getTime())) {
+        return date
+      }
+    }
+    // Fallback to accepted_by_do_at
+    if (document.accepted_by_do_at) {
+      const date = new Date(document.accepted_by_do_at)
+      if (!isNaN(date.getTime())) {
+        return date
+      }
+    }
+  }
+  // For original recipient or non-forwarded documents, use accepted_by_do_at
+  return getReceivedDate(document)
+}
+
+function getForwarderFrozenDate(document) {
+  // If current user forwarded the document, return when they forwarded it
+  if (document.forwarded_by === currentUser.value?.name && document.forwarded_at) {
+    const date = new Date(document.forwarded_at)
+    if (!isNaN(date.getTime())) {
+      return date
+    }
+  }
+  return null
+}
+
 function updateHandlingDuration() {
   if (!timerDocument.value) return
   
+  // Check if current user is the forwarder
+  const forwarderFrozenDate = getForwarderFrozenDate(timerDocument.value)
+  if (forwarderFrozenDate) {
+    // User is the forwarder - freeze duration at forward time (within remaining processing time)
   const receivedDate = getReceivedDate(timerDocument.value)
   if (!receivedDate) {
+      handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+      return
+    }
+    
+    // Calculate duration from when they received it to when they forwarded it
+    const diff = forwarderFrozenDate - receivedDate
+    
+    if (diff <= 0) {
+      handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+      return
+    }
+    
+    const totalSeconds = Math.floor(diff / 1000)
+    const days = Math.floor(totalSeconds / (24 * 60 * 60))
+    const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60))
+    const minutes = Math.floor((totalSeconds % (60 * 60)) / 60)
+    const seconds = totalSeconds % 60
+    
+    handlingDuration.value = { days, hours, minutes, seconds }
+    return
+  }
+  
+  // Current user is the recipient (forwarded to them or original recipient)
+  const userReceivedDate = getUserReceivedDate(timerDocument.value)
+  if (!userReceivedDate) {
     handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
     return
   }
   
   const now = new Date()
-  const diff = now - receivedDate
+  const diff = now - userReceivedDate
   
   if (diff <= 0) {
     handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
     return
   }
   
-  // Calculate how long the document has been handled
+  // Calculate how long the document has been handled by current user
   const totalSeconds = Math.floor(diff / 1000)
   const days = Math.floor(totalSeconds / (24 * 60 * 60))
   const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60))
@@ -791,10 +983,16 @@ onMounted(() => {
   pollTimer = setInterval(() => {
     fetchDocuments();
   }, 5000);
+  
+  // Update current time every second for real-time duration calculations
+  realTimeUpdateInterval = setInterval(() => {
+    currentTime.value = new Date();
+  }, 1000);
 });
 
 onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer);
+  if (realTimeUpdateInterval) clearInterval(realTimeUpdateInterval);
   if (timerInterval) {
     clearInterval(timerInterval);
     timerInterval = null;
