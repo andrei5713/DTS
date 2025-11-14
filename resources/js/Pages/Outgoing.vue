@@ -48,13 +48,23 @@
     </div>
     <!-- Table View -->
     <div v-if="viewMode === 'table'">
-      <Table :columns="columns" :rows="documents">
+      <div v-if="documents.length === 0" class="bg-white rounded-lg shadow px-6 py-12 text-center">
+        <div class="text-gray-400 mb-4">
+          <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No outgoing documents</h3>
+        <p class="text-sm text-gray-500">Documents you upload will appear here.</p>
+      </div>
+      <Table v-else :columns="columns" :rows="documents">
         <template #duration="{ row }">
-          <div v-if="row.status === 'received' && getReceivedDate(row)">
+          <div v-if="(row.status === 'received' || row.status === 'complied') && getReceivedDate(row)">
             <ProgressRing
               :percentage="getDurationPercentage(row)"
               :display-text="getDurationDisplayText(row)"
               :is-overdue="calculateTimerStatus(row).isOverdue"
+              :is-complied="row.status === 'complied'"
               :clickable="true"
               :title="getDurationTooltip(row)"
             @click="openTimerModal(row)"
@@ -211,7 +221,7 @@
           </div>
           <div class="p-6">
             <div v-if="timerDocument" class="space-y-4">
-              <div v-if="timerDocument.status === 'received' && getReceivedDate(timerDocument)" class="space-y-3">
+              <div v-if="(timerDocument.status === 'received' || timerDocument.status === 'complied') && getReceivedDate(timerDocument)" class="space-y-3">
                 <!-- Live Countdown Timer -->
                 <div v-if="!calculateTimerStatus(timerDocument).isOverdue" class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
                   <h4 class="text-sm font-medium text-white/90 mb-3 text-center">Time Remaining</h4>
@@ -281,6 +291,7 @@
                       :percentage="getDurationPercentage(timerDocument)"
                       :display-text="getDurationDisplayText(timerDocument)"
                       :is-overdue="calculateTimerStatus(timerDocument).isOverdue"
+                      :is-complied="timerDocument.status === 'complied'"
                       :clickable="false"
                       :size="64"
                       :stroke-width="5"
@@ -666,20 +677,22 @@ function getReceivedDate(document) {
 }
 
 function calculateTimerStatus(document) {
-  if (!document || document.status !== 'received') {
-    return { color: 'bg-gray-300', daysRemaining: 0, daysElapsed: 0, isOverdue: false, receivedDate: null, priorityDays: 0, isInstant: false }
+  if (!document || (document.status !== 'received' && document.status !== 'complied')) {
+    return { color: 'bg-gray-300', daysRemaining: 0, daysElapsed: 0, isOverdue: false, receivedDate: null, priorityDays: 0, isInstant: false, isComplied: false }
   }
   
   const priorityDays = getPriorityDays(document.priority)
   const receivedDate = getReceivedDate(document)
   const isInstant = document.priority && document.priority.toLowerCase().includes('instant')
+  const isComplied = document.status === 'complied'
   
   if (!receivedDate || priorityDays === 0) {
-    return { color: 'bg-gray-300', daysRemaining: 0, daysElapsed: 0, isOverdue: false, receivedDate: null, priorityDays: 0, isInstant: false }
+    return { color: 'bg-gray-300', daysRemaining: 0, daysElapsed: 0, isOverdue: false, receivedDate: null, priorityDays: 0, isInstant: false, isComplied: isComplied }
   }
   
-  // Use reactive currentTime to trigger real-time updates
-  const now = currentTime.value
+  // For complied documents, freeze at the time of compliance
+  const freezeTime = isComplied && document.complied_at ? new Date(document.complied_at) : null
+  const now = freezeTime || currentTime.value
   
   // For Instant priority (3 seconds), use milliseconds precision
   if (isInstant) {
@@ -695,14 +708,14 @@ function calculateTimerStatus(document) {
       isOverdue: isOverdue,
       receivedDate: receivedDate,
       priorityDays: 3, // 3 seconds
-      isInstant: true
+      isInstant: true,
+      isComplied: isComplied
     }
   }
   
   // For other priorities, calculate exact deadline and remaining time
-  // Calculate deadline by adding exact priority days to received time
-  const deadline = new Date(receivedDate)
-  deadline.setDate(deadline.getDate() + priorityDays)
+  // Calculate deadline by adding exact milliseconds (priorityDays * 24 hours * 60 minutes * 60 seconds * 1000 ms)
+  const deadline = new Date(receivedDate.getTime() + (priorityDays * 24 * 60 * 60 * 1000))
   
   // Calculate remaining time from exact deadline
   const diffTime = deadline - now
@@ -723,7 +736,8 @@ function calculateTimerStatus(document) {
     isOverdue: isOverdue,
     receivedDate: receivedDate,
     priorityDays: priorityDays,
-    isInstant: false
+    isInstant: false,
+    isComplied: isComplied
   }
 }
 
@@ -744,9 +758,9 @@ function getDurationDisplayText(document) {
   if (timerStatus.isOverdue) {
     return 'Due'
   }
+  // For instant priorities (3 seconds), always show 0 days
   if (timerStatus.isInstant) {
-    const seconds = Math.max(0, Math.floor(timerStatus.daysRemaining))
-    return seconds
+    return 0
   }
   // For day-based priorities, round down to show whole days remaining
   return Math.max(0, Math.floor(timerStatus.daysRemaining))
@@ -777,14 +791,15 @@ function startTimerCountdown(document) {
     timerInterval = null
   }
   
-  // Only start timer if document is received
-  if (!document || document.status !== 'received') {
+  // Only start timer if document is received or complied
+  if (!document || (document.status !== 'received' && document.status !== 'complied')) {
     timerCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
     return
   }
   
   const priorityDays = getPriorityDays(document.priority)
   const receivedDate = getReceivedDate(document)
+  const isComplied = document.status === 'complied'
   
   if (!receivedDate || priorityDays === 0) {
     timerCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
@@ -799,24 +814,48 @@ function startTimerCountdown(document) {
     // For Instant priority, add 3 seconds
     deadline.setTime(deadline.getTime() + 3000)
   } else {
-    // For other priorities, add the full priority days to the exact received time
-    // For example: if received at 5:47 AM on Jan 1 with 3-day priority, deadline is 5:47 AM on Jan 4
-    deadline.setDate(deadline.getDate() + priorityDays)
+    // For other priorities, add exact milliseconds (priorityDays * 24 hours * 60 minutes * 60 seconds * 1000 ms)
+    // For example: if received at 5:47 AM on Jan 1 with 3-day priority, deadline is exactly 72 hours later
+    deadline.setTime(deadline.getTime() + (priorityDays * 24 * 60 * 60 * 1000))
+  }
+  
+  // For complied documents, use complied_at as the freeze point
+  if (isComplied && document.complied_at) {
+    const compliedDate = new Date(document.complied_at)
+    // Validate complied date
+    if (isNaN(compliedDate.getTime())) {
+      console.error('Invalid complied_at date:', document.complied_at)
+      timerCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+      handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+      return
+    }
+    // Update countdown once with the frozen time (time remaining at compliance)
+    updateCountdown(deadline, compliedDate)
+    // Update handling duration (from received to complied)
+    updateHandlingDuration()
+    // Don't set interval for complied documents - they're frozen
+    return
   }
   
   // Update countdown immediately
   updateCountdown(deadline)
   updateHandlingDuration()
   
-  // Update countdown every second
+  // Update countdown every second (only for non-complied documents)
   timerInterval = setInterval(() => {
     updateCountdown(deadline)
   }, 1000)
 }
 
-function updateCountdown(deadline) {
-  const now = new Date()
-  let diff = deadline - now
+function updateCountdown(deadline, freezeTime = null) {
+  const now = freezeTime ? new Date(freezeTime) : new Date()
+  // Ensure now is a valid date
+  if (isNaN(now.getTime())) {
+    console.error('Invalid freezeTime in updateCountdown:', freezeTime)
+    timerCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+    return
+  }
+  let diff = deadline.getTime() - now.getTime()
   
   if (diff <= 0) {
     // Timer has expired - show 00:00:00:00 for countdown
@@ -842,7 +881,8 @@ function updateCountdown(deadline) {
   }
   
   // Update handling duration (how long user has been handling the document)
-  updateHandlingDuration()
+  // Pass freezeTime if provided (for complied documents)
+  updateHandlingDuration(freezeTime)
 }
 
 function getUserReceivedDate(document) {
@@ -879,8 +919,38 @@ function getForwarderFrozenDate(document) {
   return null
 }
 
-function updateHandlingDuration() {
+function updateHandlingDuration(freezeTime = null) {
   if (!timerDocument.value) return
+  
+  // For complied documents, freeze at complied_at
+  if (timerDocument.value.status === 'complied' && timerDocument.value.complied_at) {
+    const compliedDate = new Date(timerDocument.value.complied_at)
+    // Validate complied date
+    if (isNaN(compliedDate.getTime())) {
+      console.error('Invalid complied_at date in updateHandlingDuration:', timerDocument.value.complied_at)
+      handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+      return
+    }
+    // Use getReceivedDate to get when document was actually received/accepted
+    const receivedDate = getReceivedDate(timerDocument.value)
+    if (!receivedDate) {
+      console.warn('No received date found for complied document:', timerDocument.value.id)
+      handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+      return
+    }
+    const diff = compliedDate.getTime() - receivedDate.getTime()
+    if (diff <= 0) {
+      handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+      return
+    }
+    const totalSeconds = Math.floor(diff / 1000)
+    const days = Math.floor(totalSeconds / (24 * 60 * 60))
+    const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60))
+    const minutes = Math.floor((totalSeconds % (60 * 60)) / 60)
+    const seconds = totalSeconds % 60
+    handlingDuration.value = { days, hours, minutes, seconds }
+    return
+  }
   
   // Check if current user is the forwarder
   const forwarderFrozenDate = getForwarderFrozenDate(timerDocument.value)
@@ -917,7 +987,7 @@ function updateHandlingDuration() {
     return
   }
   
-  const now = new Date()
+  const now = freezeTime || new Date()
   const diff = now - userReceivedDate
   
   if (diff <= 0) {

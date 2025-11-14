@@ -112,7 +112,7 @@ class DocumentController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'tracking_code' => 'required|string|unique:documents',
+            'tracking_code' => 'nullable|string', // Will be auto-generated
             'document_type' => 'required|string',
             'subject' => 'required|string',
             'entry_date' => 'required|date',
@@ -122,7 +122,6 @@ class DocumentController extends Controller
             'forward_to_department' => 'nullable|string',
             'origin_type' => 'required|string',
             'priority' => 'required|string',
-            'remarks' => 'nullable|string',
             'routing' => 'required|string',
             'file' => 'required|file|mimes:pdf|max:10240', // 10MB max
         ]);
@@ -172,9 +171,12 @@ class DocumentController extends Controller
             'initial_recipient_unit' => $initialRecipient ? $initialRecipient->unit->full_name ?? 'null' : 'null'
         ]);
 
+        // Generate tracking number in format: Unit-year-month-shared_id-document_number
+        $trackingCode = $this->generateTrackingNumber($request->originating_office, $request->entry_date);
+
         // Create the document
         $document = Document::create([
-            'tracking_code' => $request->tracking_code,
+            'tracking_code' => $trackingCode,
             'document_type' => $request->document_type,
             'subject' => $request->subject,
             'document_date' => $request->document_date ?? now(),
@@ -187,7 +189,7 @@ class DocumentController extends Controller
             'forward_to_department' => $request->forward_to_department,
             'origin_type' => $request->origin_type,
             'priority' => $request->priority,
-            'remarks' => $request->remarks,
+            'remarks' => null,
             'routing' => $request->routing,
             'file_path' => $filePath,
             'file_name' => $fileName,
@@ -394,8 +396,13 @@ class DocumentController extends Controller
             // Track who forwarded this document
             $copy->forwarded_by = $user->name;
             $copy->forwarded_by_user_id = $user->id;
-            // Ensure unique tracking code for each forwarded copy
-            $copy->tracking_code = $document->tracking_code . '-FWD-' . $forwardToUser->id . '-' . now()->format('YmdHis');
+            // Generate tracking code for forwarded copy using new format
+            // Format: Unit-year-month-shared_id-document_number (increment document_number)
+            $copy->tracking_code = $this->generateTrackingNumber(
+                $document->originating_office,
+                $document->entry_date,
+                $document->tracking_code // Pass base tracking code to extract shared_id
+            );
             $copy->save();
             
             // Create notification for the forwarded recipient
@@ -479,6 +486,94 @@ class DocumentController extends Controller
             'success' => true,
             'message' => 'Document marked as complied successfully.'
         ]);
+    }
+
+    private function generateTrackingNumber($originatingOffice, $entryDate, $baseTrackingCode = null)
+    {
+        // Extract unit prefix (e.g., "CPMSD" from "CPMSD/DO")
+        $unitPrefix = str_replace('/DO', '', $originatingOffice);
+        $unitPrefix = trim(strtoupper($unitPrefix));
+        
+        // Parse entry date to get year and month
+        $date = \Carbon\Carbon::parse($entryDate);
+        $year = $date->format('Y');
+        $month = $date->format('m');
+        
+        // If this is a forwarded document, extract shared_id from base tracking code
+        if ($baseTrackingCode) {
+            // Remove old format suffixes if present
+            $cleanCode = preg_replace('/-FWD-.*$/', '', $baseTrackingCode);
+            $cleanCode = preg_replace('/-DO$/', '', $cleanCode);
+            
+            // Parse format: Unit-DO-year-month-shared_id-document_number
+            // Example: CPMSD-DO-2025-11-001-001
+            $parts = explode('-', $cleanCode);
+            if (count($parts) >= 6) {
+                $sharedId = $parts[4]; // Get shared_id
+                
+                // Find the highest document_number for this shared_id
+                $pattern = $unitPrefix . '-DO-' . $year . '-' . $month . '-' . $sharedId . '-%';
+                $lastDoc = Document::where('tracking_code', 'LIKE', $pattern)
+                    ->where('tracking_code', 'NOT LIKE', '%-FWD-%') // Exclude old format
+                    ->orderBy('tracking_code', 'desc')
+                    ->first();
+                
+                if ($lastDoc) {
+                    // Extract document_number from last document
+                    $lastParts = explode('-', $lastDoc->tracking_code);
+                    $lastDocNumber = isset($lastParts[5]) ? (int)$lastParts[5] : 0;
+                    $documentNumber = str_pad($lastDocNumber + 1, 3, '0', STR_PAD_LEFT);
+                } else {
+                    $documentNumber = '002'; // First forwarded copy
+                }
+                
+                $trackingCode = $unitPrefix . '-DO-' . $year . '-' . $month . '-' . $sharedId . '-' . $documentNumber;
+                
+                // Ensure uniqueness
+                $counter = 1;
+                while (Document::where('tracking_code', $trackingCode)->exists()) {
+                    $documentNumber = str_pad((int)$documentNumber + $counter, 3, '0', STR_PAD_LEFT);
+                    $trackingCode = $unitPrefix . '-DO-' . $year . '-' . $month . '-' . $sharedId . '-' . $documentNumber;
+                    $counter++;
+                }
+                
+                return $trackingCode;
+            }
+        }
+        
+        // For new documents, find the next shared_id
+        $pattern = $unitPrefix . '-DO-' . $year . '-' . $month . '-%';
+        $lastDoc = Document::where('tracking_code', 'LIKE', $pattern)
+            ->where('tracking_code', 'NOT LIKE', '%-FWD-%') // Exclude old format
+            ->orderBy('tracking_code', 'desc')
+            ->first();
+        
+        if ($lastDoc) {
+            // Extract shared_id from last document
+            $parts = explode('-', $lastDoc->tracking_code);
+            if (count($parts) >= 6) {
+                $lastSharedId = (int)$parts[4];
+                $sharedId = str_pad($lastSharedId + 1, 3, '0', STR_PAD_LEFT);
+            } else {
+                $sharedId = '001';
+            }
+        } else {
+            $sharedId = '001';
+        }
+        
+        $documentNumber = '001'; // Always start with 001 for new documents
+        
+        $trackingCode = $unitPrefix . '-DO-' . $year . '-' . $month . '-' . $sharedId . '-' . $documentNumber;
+        
+        // Ensure uniqueness
+        $counter = 1;
+        while (Document::where('tracking_code', $trackingCode)->exists()) {
+            $sharedId = str_pad((int)$sharedId + $counter, 3, '0', STR_PAD_LEFT);
+            $trackingCode = $unitPrefix . '-DO-' . $year . '-' . $month . '-' . $sharedId . '-' . $documentNumber;
+            $counter++;
+        }
+        
+        return $trackingCode;
     }
 
     private function getInitialRecipient($forwardedUnit)

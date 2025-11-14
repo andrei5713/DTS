@@ -72,6 +72,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  isComplied: {
+    type: Boolean,
+    default: false
+  },
   clickable: {
     type: Boolean,
     default: true
@@ -97,10 +101,16 @@ const offset = computed(() => {
 })
 
 const bgColor = computed(() => {
+  if (props.isComplied) {
+    return '#f3f4f6' // gray-100 for complied
+  }
   return props.isOverdue ? '#fee2e2' : '#dcfce7' // red-100 for overdue, green-100 for normal
 })
 
 const progressColor = computed(() => {
+  if (props.isComplied) {
+    return '#9ca3af' // gray-400 - gray for complied
+  }
   if (props.isOverdue) {
     return '#ef4444' // red-500 - full circle when overdue
   }
@@ -109,6 +119,9 @@ const progressColor = computed(() => {
 })
 
 const textColor = computed(() => {
+  if (props.isComplied) {
+    return 'text-gray-600'
+  }
   if (props.isOverdue) {
     return 'text-red-600'
   }
