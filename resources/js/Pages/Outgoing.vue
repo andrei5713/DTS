@@ -342,7 +342,7 @@
               </div>
             </div>
           </div>
-          <div class="px-6 py-4 border-t flex justify-end">
+          <div class="px-6 py-4 border-t flex justify-end gap-3">
             <button 
               @click="closeTimerModal" 
               class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
@@ -395,6 +395,13 @@ const timerCountdown = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 const overdueTimePassed = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 const handlingDuration = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 let timerInterval = null;
+
+// Pause state
+const isPaused = ref(false);
+const pauseStartTime = ref(null);
+const totalPausedTime = ref(0); // Total paused time in milliseconds
+const originalDeadline = ref(null); // Store original deadline
+const originalReceivedDate = ref(null); // Store original received date
 
 // PDF modal state
 const showPdfModal = ref(false);
@@ -690,9 +697,7 @@ function calculateTimerStatus(document) {
     return { color: 'bg-gray-300', daysRemaining: 0, daysElapsed: 0, isOverdue: false, receivedDate: null, priorityDays: 0, isInstant: false, isComplied: isComplied }
   }
   
-  // For complied documents, freeze at the time of compliance
-  const freezeTime = isComplied && document.complied_at ? new Date(document.complied_at) : null
-  const now = freezeTime || currentTime.value
+  const now = currentTime.value
   
   // For Instant priority (3 seconds), use milliseconds precision
   if (isInstant) {
@@ -778,13 +783,102 @@ function getDurationTooltip(document) {
   return `${timerStatus.daysRemaining} ${timerStatus.daysRemaining === 1 ? 'day' : 'days'} remaining`
 }
 
+// Helper functions to manage paused documents in localStorage
+function getPausedDocuments() {
+  try {
+    const paused = localStorage.getItem('pausedDocuments')
+    return paused ? JSON.parse(paused) : []
+  } catch (e) {
+    return []
+  }
+}
+
+function setPausedDocument(documentId) {
+  try {
+    const paused = getPausedDocuments()
+    if (!paused.includes(documentId)) {
+      paused.push(documentId)
+      localStorage.setItem('pausedDocuments', JSON.stringify(paused))
+    }
+    // Save timer values for this document
+    const timerKey = `timer_values_${documentId}`
+    const timerData = {
+      timerCountdown: { ...timerCountdown.value },
+      handlingDuration: { ...handlingDuration.value },
+      overdueTimePassed: { ...overdueTimePassed.value },
+      timestamp: new Date().toISOString()
+    }
+    localStorage.setItem(timerKey, JSON.stringify(timerData))
+  } catch (e) {
+    console.error('Error saving paused document:', e)
+  }
+}
+
+function isDocumentPaused(documentId) {
+  const paused = getPausedDocuments()
+  return paused.includes(documentId)
+}
+
+function getPausedTimerValues(documentId) {
+  try {
+    const timerKey = `timer_values_${documentId}`
+    const data = localStorage.getItem(timerKey)
+    return data ? JSON.parse(data) : null
+  } catch (e) {
+    console.error('Error getting paused timer values:', e)
+    return null
+  }
+}
+
 function openTimerModal(document) {
   timerDocument.value = document
   showTimerModal.value = true
+  
+  // Check if this document was previously paused (from localStorage)
+  const wasPaused = isDocumentPaused(document.id)
+  
+  if (wasPaused) {
+    // Document was paused before - restore pause state and timer values
+    isPaused.value = true
+    pauseStartTime.value = null
+    totalPausedTime.value = 0
+    
+    // Restore saved timer values
+    const savedValues = getPausedTimerValues(document.id)
+    if (savedValues) {
+      timerCountdown.value = savedValues.timerCountdown || { days: 0, hours: 0, minutes: 0, seconds: 0 }
+      handlingDuration.value = savedValues.handlingDuration || { days: 0, hours: 0, minutes: 0, seconds: 0 }
+      overdueTimePassed.value = savedValues.overdueTimePassed || { days: 0, hours: 0, minutes: 0, seconds: 0 }
+    }
+    
+    // Don't start the timer - it's permanently paused
+    originalDeadline.value = null
+    originalReceivedDate.value = null
+    return
+  } else {
+    // Reset pause state when opening modal for non-paused documents
+    isPaused.value = false
+    pauseStartTime.value = null
+    totalPausedTime.value = 0
+    originalDeadline.value = null
+    originalReceivedDate.value = null
+  }
+  
+  // If document is complied, automatically pause and save to localStorage
+  if (document.status === 'complied' && !isPaused.value) {
+    pauseTimer()
+    return // Don't start timer if just paused
+  }
+  
   startTimerCountdown(document)
 }
 
 function startTimerCountdown(document) {
+  // If timer is paused, do nothing - never resume once paused
+  if (isPaused.value) {
+    return
+  }
+  
   // Clear any existing interval
   if (timerInterval) {
     clearInterval(timerInterval)
@@ -819,35 +913,34 @@ function startTimerCountdown(document) {
     deadline.setTime(deadline.getTime() + (priorityDays * 24 * 60 * 60 * 1000))
   }
   
-  // For complied documents, use complied_at as the freeze point
-  if (isComplied && document.complied_at) {
-    const compliedDate = new Date(document.complied_at)
-    // Validate complied date
-    if (isNaN(compliedDate.getTime())) {
-      console.error('Invalid complied_at date:', document.complied_at)
-      timerCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
-      handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
-      return
-    }
-    // Update countdown once with the frozen time (time remaining at compliance)
-    updateCountdown(deadline, compliedDate)
-    // Update handling duration (from received to complied)
-    updateHandlingDuration()
-    // Don't set interval for complied documents - they're frozen
-    return
+  // Store original values for pause/resume functionality
+  originalDeadline.value = new Date(deadline)
+  originalReceivedDate.value = new Date(receivedDate)
+  
+  // Adjust deadline by adding total paused time (if resuming from pause)
+  if (totalPausedTime.value > 0) {
+    deadline.setTime(deadline.getTime() + totalPausedTime.value)
   }
   
   // Update countdown immediately
   updateCountdown(deadline)
   updateHandlingDuration()
   
-  // Update countdown every second (only for non-complied documents)
+  // Update countdown every second
   timerInterval = setInterval(() => {
-    updateCountdown(deadline)
+    if (!isPaused.value) {
+      updateCountdown(deadline)
+      updateHandlingDuration()
+    }
   }, 1000)
 }
 
 function updateCountdown(deadline, freezeTime = null) {
+  // If paused, don't update the countdown (keep it frozen)
+  if (isPaused.value && !freezeTime) {
+    return
+  }
+  
   const now = freezeTime ? new Date(freezeTime) : new Date()
   // Ensure now is a valid date
   if (isNaN(now.getTime())) {
@@ -881,7 +974,6 @@ function updateCountdown(deadline, freezeTime = null) {
   }
   
   // Update handling duration (how long user has been handling the document)
-  // Pass freezeTime if provided (for complied documents)
   updateHandlingDuration(freezeTime)
 }
 
@@ -922,36 +1014,6 @@ function getForwarderFrozenDate(document) {
 function updateHandlingDuration(freezeTime = null) {
   if (!timerDocument.value) return
   
-  // For complied documents, freeze at complied_at
-  if (timerDocument.value.status === 'complied' && timerDocument.value.complied_at) {
-    const compliedDate = new Date(timerDocument.value.complied_at)
-    // Validate complied date
-    if (isNaN(compliedDate.getTime())) {
-      console.error('Invalid complied_at date in updateHandlingDuration:', timerDocument.value.complied_at)
-      handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
-      return
-    }
-    // Use getReceivedDate to get when document was actually received/accepted
-    const receivedDate = getReceivedDate(timerDocument.value)
-    if (!receivedDate) {
-      console.warn('No received date found for complied document:', timerDocument.value.id)
-      handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
-      return
-    }
-    const diff = compliedDate.getTime() - receivedDate.getTime()
-    if (diff <= 0) {
-      handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
-      return
-    }
-    const totalSeconds = Math.floor(diff / 1000)
-    const days = Math.floor(totalSeconds / (24 * 60 * 60))
-    const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60))
-    const minutes = Math.floor((totalSeconds % (60 * 60)) / 60)
-    const seconds = totalSeconds % 60
-    handlingDuration.value = { days, hours, minutes, seconds }
-    return
-  }
-  
   // Check if current user is the forwarder
   const forwarderFrozenDate = getForwarderFrozenDate(timerDocument.value)
   if (forwarderFrozenDate) {
@@ -987,7 +1049,16 @@ function updateHandlingDuration(freezeTime = null) {
     return
   }
   
-  const now = freezeTime || new Date()
+  // If paused, use the time when pause started (don't count paused time)
+  let now = freezeTime || new Date()
+  if (isPaused.value && pauseStartTime.value) {
+    // Use the pause start time as the current time (freeze the duration)
+    now = new Date(pauseStartTime.value)
+  } else if (!isPaused.value && totalPausedTime.value > 0) {
+    // Adjust now by subtracting total paused time to get accurate duration
+    now = new Date(now.getTime() - totalPausedTime.value)
+  }
+  
   const diff = now - userReceivedDate
   
   if (diff <= 0) {
@@ -1005,14 +1076,62 @@ function updateHandlingDuration(freezeTime = null) {
   handlingDuration.value = { days, hours, minutes, seconds }
 }
 
+function pauseTimer() {
+  if (isPaused.value || !timerDocument.value) {
+    return // Already paused
+  }
+  
+  isPaused.value = true
+  pauseStartTime.value = new Date()
+  
+  // Stop the interval
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
+  
+  // Save paused state and current timer values to localStorage for persistence
+  if (timerDocument.value.id) {
+    setPausedDocument(timerDocument.value.id)
+  }
+}
+
+function resumeTimer() {
+  // Resume functionality disabled - once paused, timer never resumes
+  return
+}
+
 function closeTimerModal() {
   showTimerModal.value = false
   if (timerInterval) {
     clearInterval(timerInterval)
     timerInterval = null
   }
-  timerCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
-  handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+  
+  // If paused, save current timer values before closing
+  if (isPaused.value && timerDocument.value && timerDocument.value.id) {
+    const timerKey = `timer_values_${timerDocument.value.id}`
+    const timerData = {
+      timerCountdown: { ...timerCountdown.value },
+      handlingDuration: { ...handlingDuration.value },
+      overdueTimePassed: { ...overdueTimePassed.value },
+      timestamp: new Date().toISOString()
+    }
+    try {
+      localStorage.setItem(timerKey, JSON.stringify(timerData))
+    } catch (e) {
+      console.error('Error saving timer values:', e)
+    }
+  }
+  
+  // Don't reset timer values - keep them for next time
+  // Don't reset pause state - keep it persisted in localStorage
+  // Only reset temporary pause tracking
+  pauseStartTime.value = null
+  totalPausedTime.value = 0
+  originalDeadline.value = null
+  originalReceivedDate.value = null
+  // Keep isPaused.value as is - it will be restored from localStorage when modal reopens
 }
 
 function showNotificationMessage(message, type = 'info') {
