@@ -692,15 +692,18 @@ async function fetchDocuments() {
       const updatedDoc = documents.value.find(doc => doc.id === timerDocument.value.id);
       if (updatedDoc) {
         const wasComplied = timerDocument.value.status === 'complied';
+        const wasPausedBefore = isPaused.value;
         timerDocument.value = updatedDoc;
         
         // If document just became complied, automatically pause
         if (!wasComplied && updatedDoc.status === 'complied' && !isPaused.value) {
           pauseTimer();
+          return; // Don't continue if just paused
         }
         
         // Only restart timer countdown if not paused (once paused, never resume)
-        if (!isPaused.value) {
+        // But if it wasn't paused before and still isn't paused, restart the timer
+        if (!isPaused.value && !wasPausedBefore) {
           startTimerCountdown(updatedDoc);
         }
       }
@@ -983,13 +986,40 @@ async function complyDocument(documentId) {
         // Find the updated document
         const updatedDoc = documents.value.find(doc => doc.id === documentId);
         if (updatedDoc) {
+          // Save current timer values before updating document (to preserve them)
+          const currentTimerCountdown = { ...timerCountdown.value };
+          const currentHandlingDuration = { ...handlingDuration.value };
+          const currentOverdueTimePassed = { ...overdueTimePassed.value };
+          
           timerDocument.value = updatedDoc;
+          
           // Ensure timer is paused (it should already be paused from the initial click, but ensure it stays paused)
           if (updatedDoc.status === 'complied' && !isPaused.value) {
             pauseTimer();
           }
-          // Only restart timer countdown if not paused (once paused, never resume)
-          if (!isPaused.value) {
+          
+          // If paused, restore the saved timer values (don't let them get reset)
+          if (isPaused.value) {
+            timerCountdown.value = currentTimerCountdown;
+            handlingDuration.value = currentHandlingDuration;
+            overdueTimePassed.value = currentOverdueTimePassed;
+            // Save the preserved values to localStorage
+            if (updatedDoc.id) {
+              const timerKey = `timer_values_${updatedDoc.id}`
+              const timerData = {
+                timerCountdown: currentTimerCountdown,
+                handlingDuration: currentHandlingDuration,
+                overdueTimePassed: currentOverdueTimePassed,
+                timestamp: new Date().toISOString()
+              }
+              try {
+                localStorage.setItem(timerKey, JSON.stringify(timerData))
+              } catch (e) {
+                console.error('Error saving preserved timer values:', e)
+              }
+            }
+          } else {
+            // Only restart timer countdown if not paused (once paused, never resume)
             startTimerCountdown(updatedDoc);
           }
         }
@@ -1312,8 +1342,10 @@ function openTimerModal(document) {
   // Check if this document was previously paused (from localStorage)
   const wasPaused = isDocumentPaused(document.id)
   
-  if (wasPaused) {
-    // Document was paused before - restore pause state and timer values
+  // Only restore pause state if document is complied OR was explicitly paused
+  // For non-complied documents that are not paused, clear any stale pause state
+  if (wasPaused && document.status === 'complied') {
+    // Document is complied and was paused - restore pause state and timer values
     isPaused.value = true
     pauseStartTime.value = null // Don't track pause start time for persisted pauses
     totalPausedTime.value = 0
@@ -1330,6 +1362,28 @@ function openTimerModal(document) {
     originalDeadline.value = null
     originalReceivedDate.value = null
     return
+  } else if (wasPaused && document.status !== 'complied') {
+    // Document was paused but is not complied - this shouldn't happen, clear the pause state
+    // Remove from paused documents list
+    try {
+      const paused = getPausedDocuments()
+      const index = paused.indexOf(document.id)
+      if (index > -1) {
+        paused.splice(index, 1)
+        localStorage.setItem('pausedDocuments', JSON.stringify(paused))
+      }
+      // Also remove timer values
+      const timerKey = `timer_values_${document.id}`
+      localStorage.removeItem(timerKey)
+    } catch (e) {
+      console.error('Error clearing stale pause state:', e)
+    }
+    // Reset pause state and start timer normally
+    isPaused.value = false
+    pauseStartTime.value = null
+    totalPausedTime.value = 0
+    originalDeadline.value = null
+    originalReceivedDate.value = null
   } else {
     // Reset pause state when opening modal for non-paused documents
     isPaused.value = false
@@ -1356,6 +1410,7 @@ function openTimerModal(document) {
     return // Don't start timer if just paused
   }
   
+  // Start the timer normally for non-paused, non-complied documents
   startTimerCountdown(document)
 }
 

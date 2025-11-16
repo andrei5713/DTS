@@ -837,8 +837,10 @@ function openTimerModal(document) {
   // Check if this document was previously paused (from localStorage)
   const wasPaused = isDocumentPaused(document.id)
   
-  if (wasPaused) {
-    // Document was paused before - restore pause state and timer values
+  // Only restore pause state if document is complied
+  // For non-complied documents that are not paused, clear any stale pause state
+  if (wasPaused && document.status === 'complied') {
+    // Document is complied and was paused - restore pause state and timer values
     isPaused.value = true
     pauseStartTime.value = null
     totalPausedTime.value = 0
@@ -855,6 +857,26 @@ function openTimerModal(document) {
     originalDeadline.value = null
     originalReceivedDate.value = null
     return
+  } else if (wasPaused && document.status !== 'complied') {
+    // Document was paused but is not complied - clear the stale pause state
+    try {
+      const paused = getPausedDocuments()
+      const index = paused.indexOf(document.id)
+      if (index > -1) {
+        paused.splice(index, 1)
+        localStorage.setItem('pausedDocuments', JSON.stringify(paused))
+      }
+      const timerKey = `timer_values_${document.id}`
+      localStorage.removeItem(timerKey)
+    } catch (e) {
+      console.error('Error clearing stale pause state:', e)
+    }
+    // Reset pause state and start timer normally
+    isPaused.value = false
+    pauseStartTime.value = null
+    totalPausedTime.value = 0
+    originalDeadline.value = null
+    originalReceivedDate.value = null
   } else {
     // Reset pause state when opening modal for non-paused documents
     isPaused.value = false
