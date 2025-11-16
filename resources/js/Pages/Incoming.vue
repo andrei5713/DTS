@@ -133,7 +133,7 @@
                 View
               </button>
           <button 
-            v-if="(currentUser?.unit?.full_name || '').endsWith('/DO') && row.status !== 'complied'"
+            v-if="((currentUser?.unit?.full_name || '').endsWith('/DO') || currentUser?.role === 'clerk') && row.status !== 'complied'"
             @click="openForwardModal(row)"
             class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-300"
           >
@@ -440,7 +440,11 @@
       <div class="flex min-h-full items-center justify-center p-4">
         <div class="relative bg-white rounded-lg shadow-xl max-w-xl w-full">
           <div class="px-6 py-4 border-b">
-            <h3 class="text-lg font-semibold text-gray-900">Forward within {{ (currentUser?.unit?.full_name || '').split('/')[0] }}</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              Forward 
+              <span v-if="currentUser?.role === 'clerk'">within {{ (currentUser?.unit?.full_name || '').split('/')[1] }} division</span>
+              <span v-else>within {{ (currentUser?.unit?.full_name || '').split('/')[0] }}</span>
+            </h3>
           </div>
           <div class="p-6 space-y-4">
             <div>
@@ -706,12 +710,69 @@ async function fetchSameUnitUsers() {
     const resp = await fetch(`/api/users?q=${encodeURIComponent(forwardSearch.value)}`);
     const all = await resp.json();
     const unitName = currentUser.value?.unit?.full_name || '';
-    const unitPrefix = unitName.split('/')[0];
-    forwardCandidates.value = all
-      .filter(u => (u.unit_name || '').startsWith(unitPrefix))
-      .filter(u => u.id !== (currentUser.value?.id || 0));
+    const unitParts = unitName.split('/');
+    const userDepartment = unitParts[0]; // e.g., "CPMSD"
+    const userDivision = unitParts[1]; // e.g., "CPD", "DO"
+    const userRole = currentUser.value?.role;
+
+    let filtered = all;
+
+    // Filter based on user role
+    if (userRole === 'encoder' && unitName.endsWith('/DO')) {
+      // DO can forward to ALL Clerks in their department (any division)
+      // Example: CPMSD/DO can forward to CPMSD/ICTSD Clerk, CPMSD/CPD Clerk, etc.
+      filtered = all.filter(u => {
+        const recipientUnit = u.unit_name || '';
+        const recipientDepartment = recipientUnit.split('/')[0];
+        // Must be: same department AND role is clerk
+        return u.role === 'clerk' && 
+               recipientDepartment === userDepartment && 
+               u.id !== currentUser.value?.id;
+      });
+      
+      console.log('DO forwarding - filtered clerks:', {
+        userDepartment,
+        totalUsers: all.length,
+        filteredClerkCount: filtered.length,
+        clerks: filtered.map(u => ({ name: u.name, unit: u.unit_name, role: u.role }))
+      });
+      
+    } else if (userRole === 'clerk') {
+      // Clerk can only forward to users in their specific division (e.g., CPD)
+      // excluding other clerks
+      filtered = all.filter(u => {
+        const recipientUnit = u.unit_name || '';
+        const recipientParts = recipientUnit.split('/');
+        const recipientDepartment = recipientParts[0];
+        const recipientDivision = recipientParts[1] || '';
+        // Must be: same department, same division, not a clerk, and not self
+        return recipientDepartment === userDepartment && 
+               recipientDivision === userDivision && 
+               u.role !== 'clerk' && 
+               u.id !== currentUser.value?.id;
+      });
+      
+      console.log('Clerk forwarding - filtered users:', {
+        userDepartment,
+        userDivision,
+        totalUsers: all.length,
+        filteredUserCount: filtered.length,
+        users: filtered.map(u => ({ name: u.name, unit: u.unit_name, role: u.role }))
+      });
+      
+    } else {
+      // Default: same department prefix
+      filtered = all.filter(u => {
+        const recipientUnit = u.unit_name || '';
+        return recipientUnit.startsWith(userDepartment) && u.id !== currentUser.value?.id;
+      });
+    }
+
+    forwardCandidates.value = filtered;
+    
+    console.log('Final forward candidates:', forwardCandidates.value.length);
   } catch (e) {
-    console.error('Error fetching same unit users', e);
+    console.error('Error fetching users for forwarding', e);
   }
 }
 
@@ -1503,4 +1564,4 @@ watch(showTimerModal, (newValue) => {
     handlingDuration.value = { days: 0, hours: 0, minutes: 0, seconds: 0 };
   }
 });
-</script> 
+</script>

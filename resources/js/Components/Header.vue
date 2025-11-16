@@ -573,6 +573,8 @@ const roleDisplayText = computed(() => {
       return 'Encoder'
     case 'viewer':
       return 'Viewer'
+    case 'clerk':
+      return 'Clerk'
     case 'pending':
       return 'Pending'
     default:
@@ -590,6 +592,8 @@ const roleIcon = computed(() => {
       return Users
     case 'viewer':
       return User
+    case 'clerk':
+      return Users
     case 'pending':
       return User
     default:
@@ -607,6 +611,8 @@ const roleDisplayClass = computed(() => {
       return 'bg-blue-100 text-blue-800'
     case 'viewer':
       return 'bg-green-100 text-green-800'
+    case 'clerk':
+      return 'bg-purple-100 text-purple-800'
     case 'pending':
       return 'bg-yellow-100 text-yellow-800'
     default:

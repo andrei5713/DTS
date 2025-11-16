@@ -37,6 +37,7 @@
                   <option value="">Select Role</option>
                   <option value="viewer">Viewer</option>
                   <option value="encoder">Encoder</option>
+                  <option value="clerk">Clerk</option>
                 </select>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -87,6 +88,7 @@
           <option value="">Select Role for All</option>
           <option value="viewer">Viewer</option>
           <option value="encoder">Encoder</option>
+          <option value="clerk">Clerk</option>
         </select>
         <select
           v-model="bulkUnit"
@@ -211,4 +213,4 @@ const bulkReject = () => {
     })
   }
 }
-</script> 
+</script>

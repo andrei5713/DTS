@@ -38,19 +38,23 @@ class DocumentController extends Controller
         $user = Auth::user();
         $showAll = $request->query('all', false);
 
-        if ($showAll) {
-            // Show all documents where the user is the current recipient
-            $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient', 'forwardedByUser'])
-                ->where('current_recipient_id', $user->id)
-                ->latest()
-                ->get();
-        } else {
-            // Default: show only documents where the user is the current recipient
-            $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient', 'forwardedByUser'])
-                ->where('current_recipient_id', $user->id)
-                ->latest()
-                ->get();
-        }
+        // Show all documents where the user is the current recipient
+        // Include 'pending', 'received', 'forwarded', and 'complied' statuses
+        $documents = Document::with(['uploadByUser', 'uploadToUser', 'currentRecipient', 'forwardedByUser'])
+            ->where('current_recipient_id', $user->id)
+            ->whereIn('status', ['pending', 'received', 'forwarded', 'complied'])
+            ->latest()
+            ->get();
+
+        // Debug logging
+        Log::info('Incoming documents query', [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_role' => $user->role,
+            'user_unit' => $user->unit->full_name ?? 'N/A',
+            'documents_count' => $documents->count(),
+            'document_statuses' => $documents->groupBy('status')->map->count()->toArray()
+        ]);
 
         return response()->json([
             'documents' => $documents
@@ -128,11 +132,11 @@ class DocumentController extends Controller
 
         $user = Auth::user();
         
-        // Check if user can upload (must be encoder or admin)
-        if (!in_array($user->role, ['encoder', 'admin'])) {
+        // Check if user can upload (must be encoder, clerk, or admin)
+        if (!in_array($user->role, ['encoder', 'clerk', 'admin'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only encoders and admins can upload documents.'
+                'message' => 'Only encoders, clerks, and admins can upload documents.'
             ], 403);
         }
 
@@ -347,7 +351,7 @@ class DocumentController extends Controller
         if (!$this->canUserPerformAction($document, 'forward')) {
             return response()->json([
                 'success' => false,
-                'message' => 'You are not authorized to forward this document. Only the DO of the forwarded unit can perform actions.'
+                'message' => 'You are not authorized to forward this document.'
             ], 403);
         }
 
@@ -360,61 +364,171 @@ class DocumentController extends Controller
         $forwardedCount = 0;
         $errors = [];
         $userUnit = $user->unit->full_name ?? '';
-        $userDepartment = explode('/', $userUnit)[0];
+        $userDepartment = explode('/', $userUnit)[0]; // e.g., "CPMSD"
+        $userRole = $user->role;
+
+        // Log forwarding attempt with detailed info
+        Log::info('Forward attempt detailed', [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_role' => $userRole,
+            'user_unit' => $userUnit,
+            'user_department' => $userDepartment,
+            'document_id' => $document->id,
+            'recipients' => $request->recipients
+        ]);
 
         foreach ($request->recipients as $recipientName) {
-            $forwardToUser = User::where('name', $recipientName)->first();
+            // IMPORTANT: Eager load unit AND fresh() to get latest data from database
+            $forwardToUser = User::with('unit')->where('name', $recipientName)->first();
+            
             if (!$forwardToUser) {
                 $errors[] = "Recipient not found: {$recipientName}";
+                Log::warning('Recipient not found', ['recipient_name' => $recipientName]);
                 continue;
             }
 
-            $forwardToUserDepartment = explode('/', optional($forwardToUser->unit)->full_name ?? '')[0];
-            if ($userDepartment !== $forwardToUserDepartment) {
-                $errors[] = "Recipient not in same unit: {$recipientName}";
-                continue;
+            // Refresh from database to ensure we have the latest role
+            $forwardToUser->refresh();
+            
+            $forwardToUserUnit = $forwardToUser->unit->full_name ?? '';
+            $forwardToUserDepartment = explode('/', $forwardToUserUnit)[0];
+            $forwardToUserDivision = explode('/', $forwardToUserUnit)[1] ?? '';
+
+            // CRITICAL: Check the database directly to verify the role
+            $dbRole = \DB::table('users')->where('id', $forwardToUser->id)->value('role');
+            
+            // Comprehensive logging for each recipient with database verification
+            Log::info('Recipient validation details WITH DATABASE CHECK', [
+                'recipient_id' => $forwardToUser->id,
+                'recipient_name' => $forwardToUser->name,
+                'recipient_role_from_model' => $forwardToUser->role,
+                'recipient_role_from_database' => $dbRole,
+                'role_matches' => ($forwardToUser->role === $dbRole),
+                'recipient_unit' => $forwardToUserUnit,
+                'recipient_department' => $forwardToUserDepartment,
+                'recipient_division' => $forwardToUserDivision,
+                'user_role' => $userRole,
+                'user_unit' => $userUnit,
+                'user_department' => $userDepartment
+            ]);
+
+            // Use the database role for validation
+            $actualRole = $dbRole;
+
+            // Validation based on user role
+            if ($userRole === 'encoder' && str_ends_with($userUnit, '/DO')) {
+                // DO Encoder can forward to ALL Clerks in their department (any division)
+                
+                // Check if recipient is a clerk using database value
+                if ($actualRole !== 'clerk') {
+                    $errors[] = "DO can only forward to Clerks: {$recipientName} (Database shows role: {$actualRole}, Model shows: {$forwardToUser->role})";
+                    Log::warning('DO forward validation failed - not a clerk', [
+                        'recipient_name' => $recipientName,
+                        'recipient_role_model' => $forwardToUser->role,
+                        'recipient_role_database' => $actualRole,
+                        'expected_role' => 'clerk'
+                    ]);
+                    continue;
+                }
+                
+                // Check if recipient is in same department (any division is OK)
+                if ($forwardToUserDepartment !== $userDepartment) {
+                    $errors[] = "Recipient must be a Clerk in {$userDepartment} department: {$recipientName} (Recipient is in: {$forwardToUserDepartment})";
+                    Log::warning('DO forward validation failed - different department', [
+                        'user_department' => $userDepartment,
+                        'recipient_department' => $forwardToUserDepartment
+                    ]);
+                    continue;
+                }
+                
+                Log::info('DO forward validation passed - forwarding to clerk', [
+                    'recipient_name' => $recipientName,
+                    'recipient_unit' => $forwardToUserUnit,
+                    'confirmed_role_from_db' => $actualRole
+                ]);
+                
+            } elseif ($userRole === 'clerk') {
+                // Clerk validation logic...
+                $userDivision = explode('/', $userUnit)[1] ?? '';
+                
+                if (!$userDivision) {
+                    $errors[] = "Your unit structure is invalid for forwarding: {$recipientName}";
+                    Log::error('Invalid clerk unit structure', ['user_unit' => $userUnit]);
+                    continue;
+                }
+                
+                if ($forwardToUserDepartment !== $userDepartment) {
+                    $errors[] = "Clerk can only forward within {$userDepartment} department: {$recipientName} (Recipient is in: {$forwardToUserDepartment})";
+                    continue;
+                }
+                
+                if ($forwardToUserDivision !== $userDivision) {
+                    $errors[] = "Clerk can only forward within {$userDivision} division: {$recipientName} (Recipient is in: {$forwardToUserDivision})";
+                    continue;
+                }
+                
+                if ($actualRole === 'clerk') {
+                    $errors[] = "Clerk cannot forward to another Clerk: {$recipientName}";
+                    continue;
+                }
+                
+                Log::info('Clerk forward validation passed', ['recipient_name' => $recipientName]);
+                
+            } else {
+                // Regular forwarding rules
+                if ($forwardToUserDepartment !== $userDepartment) {
+                    $errors[] = "Recipient not in same department: {$recipientName}";
+                    continue;
+                }
             }
 
-            // Create a forwarded copy for each recipient; keep original in received for forwarder
+            // Create forwarded document
             $copy = $document->replicate([
                 'id', 'created_at', 'updated_at', 'responded_at', 'complied_at', 'archived_at', 'unarchived_at', 'accepted_by_do_at', 'accepted_by_do_id'
             ]);
-            // Auto-deliver forwarded copy to recipient's Received
             $copy->status = 'received';
             $copy->current_recipient_id = $forwardToUser->id;
             $copy->forward_notes = $request->forward_notes;
-            // Mark forwarder as uploader for outgoing visibility
             $copy->upload_by = $user->name;
             $copy->upload_by_user_id = $user->id;
-            // Set accepted_by_do_at to now() for forwarded copies since they're automatically delivered
-            // The timer starts when the forwarded copy is created and delivered to recipient
             $copy->accepted_by_do_at = now();
             $copy->accepted_by_do_id = $forwardToUser->id;
-            // Set intended recipient fields to the selected user
             $copy->upload_to = $forwardToUser->name;
             $copy->upload_to_user_id = $forwardToUser->id;
-            // Track who forwarded this document
             $copy->forwarded_by = $user->name;
             $copy->forwarded_by_user_id = $user->id;
-            // Generate tracking code for forwarded copy using new format
-            // Format: Unit-year-month-shared_id-document_number (increment document_number)
             $copy->tracking_code = $this->generateTrackingNumber(
                 $document->originating_office,
                 $document->entry_date,
-                $document->tracking_code // Pass base tracking code to extract shared_id
+                $document->tracking_code
             );
             $copy->save();
             
-            // Create notification for the forwarded recipient
+            Log::info('Document forwarded successfully to clerk', [
+                'original_document_id' => $document->id,
+                'new_document_id' => $copy->id,
+                'tracking_code' => $copy->tracking_code,
+                'forwarded_to' => $forwardToUser->name,
+                'forwarded_to_role_verified' => $actualRole
+            ]);
+            
             NotificationService::createDocumentForwardedReceivedNotification($copy, $forwardToUser->id);
             
             $forwardedCount++;
         }
 
         if ($forwardedCount === 0) {
+            Log::error('Forward failed - no documents forwarded', [
+                'errors' => $errors,
+                'user_role' => $userRole,
+                'user_unit' => $userUnit
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => count($errors) ? implode('\n', $errors) : 'No valid recipients.',
+                'message' => count($errors) ? implode('; ', $errors) : 'No valid recipients.',
+                'errors' => $errors
             ], 400);
         }
 
@@ -711,7 +825,7 @@ class DocumentController extends Controller
     {
         $user = Auth::user();
         $userUnit = $user->unit->full_name ?? '';
-        $canUpload = in_array($user->role, ['encoder', 'admin']);
+        $canUpload = in_array($user->role, ['encoder', 'clerk', 'admin']);
         
         return response()->json([
             'can_upload' => $canUpload,
@@ -734,21 +848,21 @@ class DocumentController extends Controller
             return true;
         }
         
-        // For other actions, check if the user is from the DO of the forwarded unit
+        // For forward action, allow DO and Clerk roles
+        if ($action === 'forward') {
+            $userUnit = $user->unit->full_name ?? '';
+            $isDO = str_ends_with($userUnit, '/DO');
+            $isClerk = $user->role === 'clerk';
+            
+            // Both DO and Clerk can forward documents
+            return $isDO || $isClerk;
+        }
+        
+        // For other actions (receive, reject), check if the user is from the DO
         $userUnit = $user->unit->full_name ?? '';
-        $forwardedUnit = $document->uploadToUser->unit->full_name ?? '';
-        
-        // Extract department prefixes
-        $userDepartment = explode('/', $userUnit)[0];
-        $forwardedDepartment = explode('/', $forwardedUnit)[0];
-        
-        // User must be from the DO of the forwarded unit
         $isDO = str_ends_with($userUnit, '/DO');
-        $departmentsMatch = $userDepartment === $forwardedDepartment;
         
-        
-        // For comply action, allow all users. For other actions, require DO unit
-        return $action === 'comply' ? true : $isDO;
+        return $isDO;
     }
 
     public function debugUserDocuments()

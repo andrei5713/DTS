@@ -42,7 +42,7 @@ class UserManagementController extends Controller
             'username' => 'required|string|max:255|unique:users',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => 'required|in:encoder,viewer',
+            'role' => 'required|in:encoder,viewer,clerk',
             'unit_id' => 'nullable|exists:units,id',
         ]);
 
@@ -63,7 +63,7 @@ class UserManagementController extends Controller
         // Handle partial updates (e.g., role-only updates)
         if ($request->has('role') && !$request->has('name')) {
             $request->validate([
-                'role' => 'required|in:encoder,viewer',
+                'role' => 'required|in:encoder,viewer,clerk',
             ]);
 
             $user->update([
@@ -78,7 +78,7 @@ class UserManagementController extends Controller
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username,' . $user->id,
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'role' => 'required|in:encoder,viewer',
+            'role' => 'required|in:encoder,viewer,clerk',
             'unit_id' => 'nullable|exists:units,id',
         ]);
 
@@ -119,7 +119,7 @@ class UserManagementController extends Controller
     public function approveUser(Request $request, User $user)
     {
         $request->validate([
-            'role' => 'required|in:encoder,viewer',
+            'role' => 'required|in:encoder,viewer,clerk',
             'unit_id' => 'required|exists:units,id',
         ]);
 
@@ -136,7 +136,7 @@ class UserManagementController extends Controller
         $request->validate([
             'users' => 'required|array',
             'users.*.id' => 'required|exists:users,id',
-            'users.*.role' => 'required|in:encoder,viewer',
+            'users.*.role' => 'required|in:encoder,viewer,clerk',
             'users.*.unit_id' => 'required|exists:units,id',
         ]);
 

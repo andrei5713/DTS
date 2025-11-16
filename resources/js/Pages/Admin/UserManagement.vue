@@ -58,6 +58,7 @@
                   >
                     <option value="encoder">Encoder</option>
                     <option value="viewer">Viewer</option>
+                    <option value="clerk">Clerk</option>
                   </select>
                   <span 
                     v-if="user.role !== user.originalRole" 
@@ -73,7 +74,7 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="statusColors[user.role]">
-                  {{ user.role === 'pending' ? 'Pending' : user.role === 'encoder' ? 'Encoder' : user.role === 'viewer' ? 'Viewer' : user.role }}
+                  {{ user.role === 'pending' ? 'Pending' : user.role === 'encoder' ? 'Encoder' : user.role === 'viewer' ? 'Viewer' : user.role === 'clerk' ? 'Clerk' : user.role }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -130,6 +131,7 @@ const statusColors = {
   admin: 'bg-red-100 text-red-800',
   encoder: 'bg-blue-100 text-blue-800',
   viewer: 'bg-green-100 text-green-800',
+  clerk: 'bg-purple-100 text-purple-800',
   pending: 'bg-yellow-100 text-yellow-800',
 }
 

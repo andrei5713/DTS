@@ -17,7 +17,7 @@ class UserController extends Controller
         
         $users = User::with('unit')
             ->select('id', 'name', 'username', 'email', 'unit_id', 'role', 'created_at')
-            ->where('role', '!=', 'admin') // Exclude admin users since they can't receive files
+            ->whereIn('role', ['encoder', 'viewer', 'clerk']) // Include clerk, exclude admin
             ->when($query, function ($q) use ($query) {
                 return $q->where('name', 'like', "%{$query}%")
                     ->orWhere('username', 'like', "%{$query}%")
