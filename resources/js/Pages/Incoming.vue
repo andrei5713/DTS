@@ -140,7 +140,7 @@
             Forward
           </button>
           <button 
-            v-if="(currentUser?.unit?.full_name || '').endsWith('/DO')"
+            v-if="(currentUser?.unit?.full_name || '').endsWith('/DO') || currentUser?.role === 'clerk'"
             @click="complyDocument(row.id)"
             :disabled="row.status === 'complied'"
             :class="[
@@ -160,6 +160,7 @@
                 Response
               </button>
               <button 
+                v-if="currentUser?.role !== 'clerk'"
                 @click="archiveDocument(row.id)"
                 class="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-full shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-300"
                 title="Archive Document"
@@ -239,6 +240,7 @@
                 Response
               </button>
               <button 
+                v-if="(currentUser?.unit?.full_name || '').endsWith('/DO') || currentUser?.role === 'clerk'"
                 @click="complyDocument(document.id)"
                 :disabled="document.status === 'complied'"
                 :class="[
@@ -251,6 +253,7 @@
                 {{ document.status === 'complied' ? 'Complied' : 'Comply' }}
               </button>
               <button 
+                v-if="currentUser?.role !== 'clerk'"
                 @click="archiveDocument(document.id)"
                 class="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-md transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-300"
                 title="Archive Document"

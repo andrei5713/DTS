@@ -42,7 +42,7 @@ class UserManagementController extends Controller
             'username' => 'required|string|max:255|unique:users',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => 'required|in:encoder,viewer,clerk',
+            'role' => 'required|in:encoder,viewer,clerk,admin',
             'unit_id' => 'nullable|exists:units,id',
         ]);
 
@@ -62,12 +62,23 @@ class UserManagementController extends Controller
     {
         // Handle partial updates (e.g., role-only updates)
         if ($request->has('role') && !$request->has('name')) {
-            $request->validate([
-                'role' => 'required|in:encoder,viewer,clerk',
+            $validated = $request->validate([
+                'role' => 'required|in:encoder,viewer,clerk,admin',
             ]);
 
-            $user->update([
-                'role' => $request->role,
+            \Log::info('Updating user role', [
+                'user_id' => $user->id,
+                'old_role' => $user->role,
+                'new_role' => $validated['role'],
+                'request_data' => $request->all()
+            ]);
+
+            $user->role = $validated['role'];
+            $user->save();
+
+            \Log::info('User role updated', [
+                'user_id' => $user->id,
+                'current_role' => $user->role
             ]);
 
             return redirect()->back()->with('success', 'User role updated successfully.');
@@ -78,7 +89,7 @@ class UserManagementController extends Controller
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username,' . $user->id,
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'role' => 'required|in:encoder,viewer,clerk',
+            'role' => 'required|in:encoder,viewer,clerk,admin',
             'unit_id' => 'nullable|exists:units,id',
         ]);
 
