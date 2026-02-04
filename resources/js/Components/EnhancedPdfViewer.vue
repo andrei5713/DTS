@@ -88,7 +88,8 @@
               <div v-if="document?.priority" class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
                 <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
-                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="priorityColors[document.priority]">
+                  <span class="inline-flex items-center gap-2 px-2 py-1 text-xs" :class="getPriorityTextColor(document.priority)">
+                    <span class="w-2.5 h-2.5 rounded-full" :class="getPriorityCircleColor(document.priority)"></span>
                     {{ document.priority }}
                   </span>
                 </div>
@@ -284,6 +285,52 @@ const pdfCanvas = ref(null)
 
 let pdfDoc = null
 let pdfjsLib = null
+
+// ARTA Color Palette for Priorities - Circle Indicator
+// Instant (3 seconds) → Gray
+// Regular (1 day) → Green
+// Simple (3 days) → Blue
+// Complex (7 days) → Red
+// Highly Technical (20 days) → Yellow
+function getPriorityCircleColor(priority) {
+  if (!priority) return 'bg-gray-400'
+  
+  const priorityLower = priority.toLowerCase()
+  
+  if (priorityLower.includes('instant') || priorityLower.includes('3 seconds')) {
+    return 'bg-gray-500'
+  } else if (priorityLower.includes('regular') || priorityLower.includes('1 day')) {
+    return 'bg-green-500'
+  } else if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
+    return 'bg-blue-500'
+  } else if (priorityLower.includes('complex') || priorityLower.includes('7 days')) {
+    return 'bg-red-500'
+  } else if (priorityLower.includes('highly technical') || priorityLower.includes('20 days')) {
+    return 'bg-yellow-500'
+  }
+  
+  return 'bg-gray-400'
+}
+
+function getPriorityTextColor(priority) {
+  if (!priority) return 'text-gray-600'
+  
+  const priorityLower = priority.toLowerCase()
+  
+  if (priorityLower.includes('instant') || priorityLower.includes('3 seconds')) {
+    return 'text-gray-600 font-semibold'
+  } else if (priorityLower.includes('regular') || priorityLower.includes('1 day')) {
+    return 'text-green-600 font-semibold'
+  } else if (priorityLower.includes('simple') || priorityLower.includes('3 days')) {
+    return 'text-blue-600 font-semibold'
+  } else if (priorityLower.includes('complex') || priorityLower.includes('7 days')) {
+    return 'text-red-600 font-semibold'
+  } else if (priorityLower.includes('highly technical') || priorityLower.includes('20 days')) {
+    return 'text-yellow-600 font-semibold'
+  }
+  
+  return 'text-gray-600'
+}
 
 const priorityColors = {
   'high': 'bg-red-100 text-red-800',

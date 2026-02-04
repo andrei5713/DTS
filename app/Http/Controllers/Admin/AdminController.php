@@ -17,12 +17,14 @@ class AdminController extends Controller
             'admin_users' => User::where('role', 'admin')->count(),
             'encoder_users' => User::where('role', 'encoder')->count(),
             'viewer_users' => User::where('role', 'viewer')->count(),
+            'clerk_users' => User::where('role', 'clerk')->count(),
             'pending_users' => User::where('role', 'pending')->count(),
             'total_units' => Unit::count(),
             'active_units' => Unit::where('is_active', true)->count(),
         ];
 
         $recent_users = User::with('unit')
+            ->whereIn('role', ['admin', 'encoder', 'viewer', 'clerk', 'pending'])
             ->latest()
             ->take(5)
             ->get();
