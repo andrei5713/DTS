@@ -17,7 +17,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleInertiaRequests::class,
         ]);
-        
+
+        // Allow auth endpoints without requiring a CSRF token to avoid 419 "Page Expired"
+        // errors when triggering login/logout from the SPA.
+        $middleware->validateCsrfTokens(
+            except: [
+                '/',
+                '/login',
+                '/logout',
+            ],
+        );
+
         $middleware->alias([
             'admin' => AdminMiddleware::class,
             'department.head' => DepartmentHeadMiddleware::class,
