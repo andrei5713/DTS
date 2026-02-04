@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineProps } from 'vue';
+import { ref, defineProps, watch } from 'vue';
 import { Mail, Lock, User } from 'lucide-vue-next';
 import { useForm, Link } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
@@ -30,6 +30,52 @@ const props = defineProps({
     default: '',
   },
 });
+
+const showToast = ref(false);
+const toastMessage = ref('');
+let toastTimeoutId = null;
+
+watch(
+  () => props.status,
+  (newStatus) => {
+    if (newStatus) {
+      if (toastTimeoutId !== null) {
+        clearTimeout(toastTimeoutId);
+      }
+      toastMessage.value = newStatus;
+      showToast.value = true;
+
+      toastTimeoutId = window.setTimeout(() => {
+        showToast.value = false;
+        toastTimeoutId = null;
+      }, 4000);
+    }
+  },
+  { immediate: true }
+);
+
+const clearToast = () => {
+  if (toastTimeoutId !== null) {
+    clearTimeout(toastTimeoutId);
+    toastTimeoutId = null;
+  }
+  showToast.value = false;
+};
+
+const handleGoogleClick = () => {
+  if (toastTimeoutId !== null) {
+    clearTimeout(toastTimeoutId);
+  }
+
+  toastMessage.value =
+    'Google sign-in is not yet available. Please use your email and password to log in instead.';
+  showToast.value = true;
+
+  toastTimeoutId = window.setTimeout(() => {
+    showToast.value = false;
+    toastTimeoutId = null;
+  }, 4000);
+};
 
 // Initialize currentMode based on prop from Laravel controller
 currentMode.value = props.isLoginMode;
@@ -66,6 +112,22 @@ const handleAuth = () => {
 
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+    <div
+      v-if="showToast"
+      class="fixed top-4 right-4 z-50 rounded-md bg-white px-4 py-2 text-xs md:text-sm font-medium text-gray-900 shadow-lg border border-gray-200 flex items-center gap-3"
+    >
+      <span class="flex-1">
+        {{ toastMessage }}
+      </span>
+      <button
+        type="button"
+        @click="clearToast"
+        class="text-gray-500 hover:text-gray-800 focus:outline-none"
+        aria-label="Close notification"
+      >
+        ×
+      </button>
+    </div>
     <div class="w-full max-w-[1280px] grid grid-cols-1 md:grid-cols-[1.5fr_1fr] gap-6">
       <!-- Left: slideshow from public/images/slideshow -->
       <div class="bg-gray-100 rounded-2xl overflow-hidden">
@@ -232,10 +294,14 @@ const handleAuth = () => {
           <div class="relative flex justify-center text-xs"><span class="bg-white px-2 text-gray-500">OR</span></div>
         </div>
 
-        <a href="/auth/google" class="w-full inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50">
+        <button
+          type="button"
+          @click="handleGoogleClick"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" class="h-5 w-5"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12 s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C33.232,6.053,28.851,4,24,4C12.955,4,4,12.955,4,24 s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,16.108,18.961,13,24,13c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657 C33.232,6.053,28.851,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4CAF50" d="M24,44c4.778,0,9.135-1.837,12.441-4.828l-5.754-4.869C28.614,35.623,26.409,36,24,36 c-5.202,0-9.619-3.317-11.274-7.955l-6.548,5.047C9.592,39.556,16.268,44,24,44z"/><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.097,5.571c0.001-0.001,0.002-0.001,0.003-0.002 l6.581,4.938C36.725,39.935,44,35,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
           <span>Sign in with Google</span>
-        </a>
+        </button>
 
         <p class="mt-6 text-center text-xs text-gray-500">© 2025 National Food Authority - Quezon City Branch. All Rights Reserved.</p>
       </div>

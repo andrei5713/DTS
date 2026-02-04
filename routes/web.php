@@ -27,6 +27,14 @@ Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register']);
 
+    // Temporary Google OAuth notice (not implemented)
+    Route::get('/auth/google', function () {
+        return redirect()->route('login')->with(
+            'status',
+            'Google sign-in is not yet available. Please use your email and password to log in instead.'
+        );
+    })->name('google.login');
+
     // Password Reset Request
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
     Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
@@ -143,6 +151,6 @@ Route::middleware('auth')->group(function () {
     // });
 });
 
-// Optional: Google OAuth (if you want to keep it)
+// Optional: Full Google OAuth implementation (if you enable it later)
 // Route::get('/auth/google', [LoginController::class, 'redirectToGoogle'])->name('google.login');
 // Route::get('/auth/google/callback', [LoginController::class, 'handleGoogleCallback']);
